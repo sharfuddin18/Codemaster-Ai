@@ -7,6 +7,6 @@ faiss-cpu==1.7.4
 numpy==1.24.3
 pydantic==2.5.0
 python-multipart==0.0.22
-requests==2.32.4
+requests==2.33.0
 sqlite-utils==3.35.2
 sentence-transformers==2.2.2
