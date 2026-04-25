@@ -15,7 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger("codemaster-ai")
 
 # ==== Ollama client config ====
-OLLAMA_HOST = "http://ollama:11434"
+OLLAMA_HOST = "http://127.0.0.1:11434"
 try:
     client = ollama.Client(host=OLLAMA_HOST)
 except Exception as e:
