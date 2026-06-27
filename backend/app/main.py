@@ -1,10 +1,11 @@
 import logging
 import os
+import re
 import time
 from typing import Dict, Optional
 
 import ollama
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -17,22 +18,40 @@ logger = logging.getLogger("codemaster-ai")
 
 # ==== Ollama client config ====
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
-client: Optional[ollama.Client] = None
+_client: Optional[ollama.AsyncClient] = None
 
 
-def get_ollama_client() -> ollama.Client:
-    global client
-    if client is None:
+def get_ollama_client() -> ollama.AsyncClient:
+    """Lazy-initializes the async Ollama client instance."""
+    global _client
+    if _client is None:
         try:
-            client = ollama.Client(host=OLLAMA_HOST)
-            logger.info(f"✅ Ollama client initialized at {OLLAMA_HOST}")
+            _client = ollama.AsyncClient(host=OLLAMA_HOST)
+            logger.info(f"✅ Async Ollama client initialized at {OLLAMA_HOST}")
         except Exception as e:
             logger.error(f"❌ Ollama client init failed: {e}")
-            raise
-    return client
+            raise RuntimeError(f"Could not connect to Ollama server: {e}")
+    return _client
+
+
+def clean_llm_markdown(text: str) -> str:
+    """Extract only clean code from fenced markdown blocks if present.
+    Uses hexadecimal escapes to prevent markdown parser truncation.
+    """
+    text = (text or "").strip()
+
+    # Matches standard triple-backtick boundaries with hex escaping (\x60 = `)
+    fence_pattern = r"\x60\x60\x60(?:[a-zA-Z0-9_+\-#.]*)?\s*\n(.*?)\x60\x60\x60"
+    matches = re.findall(fence_pattern, text, flags=re.DOTALL)
+    if matches:
+        best = max(matches, key=lambda s: len(s.strip()))
+        return best.strip()
+
+    return text
 
 
 def parse_ollama_models_response(models_response):
+    """Parses response payloads from Ollama safely across library versions."""
     if hasattr(models_response, "model_dump"):
         data = models_response.model_dump()
     elif isinstance(models_response, dict):
@@ -44,7 +63,7 @@ def parse_ollama_models_response(models_response):
         names = []
         for item in data:
             if isinstance(item, dict):
-                name = item.get("name") or item.get("tag") or item.get("id")
+                name = item.get("model") or item.get("name") or item.get("tag") or item.get("id")
                 if name:
                     names.append(name)
             elif isinstance(item, str):
@@ -61,7 +80,7 @@ def parse_ollama_models_response(models_response):
     names = []
     for item in candidates:
         if isinstance(item, dict):
-            name = item.get("name") or item.get("tag") or item.get("id")
+            name = item.get("model") or item.get("name") or item.get("tag") or item.get("id")
             if name:
                 names.append(name)
         elif isinstance(item, str):
@@ -70,18 +89,40 @@ def parse_ollama_models_response(models_response):
 
 
 def extract_ollama_response_text(response):
+    """Extracts raw text strings cleanly out of Ollama generation structures.
+    Safely navigates nested structure blocks and dictionaries.
+    """
     code = None
+
     if hasattr(response, "response"):
         code = response.response
+
     if not code and hasattr(response, "model_dump"):
         data = response.model_dump()
         if isinstance(data, dict):
-            code = data.get("response") or data.get("text") or data.get("output") or data.get("message")
+            code = (
+                data.get("response")
+                or data.get("text")
+                or data.get("output")
+            )
+            if not code and "message" in data:
+                msg = data["message"]
+                code = msg.get("content") if isinstance(msg, dict) else msg
+
     if not code and isinstance(response, dict):
-        code = response.get("response") or response.get("text") or response.get("output") or response.get("message")
+        code = (
+            response.get("response")
+            or response.get("text")
+            or response.get("output")
+        )
+        if not code and "message" in response:
+            msg = response["message"]
+            code = msg.get("content") if isinstance(msg, dict) else msg
+
     if code is None:
         return ""
-    return str(code).strip()
+
+    return clean_llm_markdown(str(code))
 
 
 # ==== Models (Pydantic) ====
@@ -106,15 +147,24 @@ class FixRequest(BaseModel):
 
 # ==== Model selector ====
 def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
+    """Dynamically routes code tasks to specific models using clean word boundaries."""
     p = (prompt or "").lower()
     l = (language or "").lower()
+
+    def matches_boundary(keyword: str, text: str) -> bool:
+        """Helper to check for exact word boundaries, resolving substring collision errors.
+        Using negative lookbehinds and lookaheads allows exact matching of strings that
+        contain punctuation symbols (like C++ or C#) without triggering word-boundary failures.
+        """
+        escaped_kw = re.escape(keyword)
+        return bool(re.search(rf"(?<!\w){escaped_kw}(?!\w)", text))
 
     mapping = [
         (
             "mistral:7b-instruct",
             "Data Science/ML detected",
             lambda: any(
-                x in p
+                matches_boundary(x, p)
                 for x in [
                     "machine learning",
                     "ml",
@@ -133,14 +183,14 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
                 ]
             ),
         ),
-        ("codellama:7b-instruct", "Python detected", lambda: "python" in l or "python" in p),
+        ("codellama:7b-instruct", "Python detected", lambda: matches_boundary("python", l) or matches_boundary("python", p)),
         (
             "qwen2.5-coder:7b",
             "JavaScript/Web detected",
-            lambda: "javascript" in l
-            or "js" in l
+            lambda: matches_boundary("javascript", l)
+            or matches_boundary("js", l)
             or any(
-                x in p
+                matches_boundary(x, p)
                 for x in [
                     "javascript",
                     "js",
@@ -154,39 +204,39 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
                 ]
             ),
         ),
-        ("mistral:7b-instruct", "Java detected", lambda: "java" in l or "java" in p),
+        ("mistral:7b-instruct", "Java detected", lambda: matches_boundary("java", l) or matches_boundary("java", p)),
         (
             "mistral:7b-instruct",
             "C/C++ detected",
-            lambda: any(x in l for x in ["c++", "cpp", "c language"])
-            or any(x in p for x in ["c++", "cpp"]),
+            lambda: any(matches_boundary(x, l) for x in ["c++", "cpp", "c language"])
+            or any(matches_boundary(x, p) for x in ["c++", "cpp"]),
         ),
-        ("mistral:7b-instruct", "C# detected", lambda: "c#" in l or "c#" in p),
+        ("mistral:7b-instruct", "C# detected", lambda: matches_boundary("c#", l) or matches_boundary("c#", p)),
         (
             "mistral:7b-instruct",
             "Go detected",
-            lambda: "go" in l or "golang" in l or "go lang" in p,
+            lambda: matches_boundary("go", l) or matches_boundary("golang", l) or matches_boundary("go lang", p),
         ),
-        ("mistral:7b-instruct", "Rust detected", lambda: "rust" in l or "rust" in p),
-        ("mistral:7b-instruct", "Ruby detected", lambda: "ruby" in l or "ruby" in p),
+        ("mistral:7b-instruct", "Rust detected", lambda: matches_boundary("rust", l) or matches_boundary("rust", p)),
+        ("mistral:7b-instruct", "Ruby detected", lambda: matches_boundary("ruby", l) or matches_boundary("ruby", p)),
         (
             "mistral:7b-instruct",
             "TypeScript detected",
-            lambda: "typescript" in l or "typescript" in p,
+            lambda: matches_boundary("typescript", l) or matches_boundary("typescript", p),
         ),
         (
             "mistral:7b-instruct",
             "Swift/Kotlin detected",
-            lambda: any(x in l for x in ["swift", "kotlin"])
-            or any(x in p for x in ["swift", "kotlin", "android", "ios"]),
+            lambda: any(matches_boundary(x, l) for x in ["swift", "kotlin"])
+            or any(matches_boundary(x, p) for x in ["swift", "kotlin", "android", "ios"]),
         ),
         (
             "qwen2.5-coder:7b",
             "SQL/Database detected",
-            lambda: "sql" in l
-            or "sql" in p
+            lambda: matches_boundary("sql", l)
+            or matches_boundary("sql", p)
             or any(
-                x in p
+                matches_boundary(x, p)
                 for x in [
                     "query",
                     "database",
@@ -204,9 +254,9 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
         (
             "qwen2.5-coder:7b",
             "Shell/Bash detected",
-            lambda: any(x in l for x in ["bash", "shell", "sh"])
+            lambda: any(matches_boundary(x, l) for x in ["bash", "shell", "sh"])
             or any(
-                x in p
+                matches_boundary(x, p)
                 for x in [
                     "shell script",
                     "bash script",
@@ -216,13 +266,13 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
                 ]
             ),
         ),
-        ("qwen2.5-coder:7b", "PHP detected", lambda: "php" in l or "php" in p),
+        ("qwen2.5-coder:7b", "PHP detected", lambda: matches_boundary("php", l) or matches_boundary("php", p)),
         (
             "qwen2.5-coder:7b",
             "DevOps detected",
-            lambda: any(x in l for x in ["yaml", "docker", "compose"])
+            lambda: any(matches_boundary(x, l) for x in ["yaml", "docker", "compose"])
             or any(
-                x in p
+                matches_boundary(x, p)
                 for x in [
                     "yaml",
                     "docker",
@@ -234,9 +284,9 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
         (
             "qwen2.5-coder:7b",
             "Frontend/UI/UX detected",
-            lambda: any(x in l for x in ["html", "css"])
+            lambda: any(matches_boundary(x, l) for x in ["html", "css"])
             or any(
-                x in p
+                matches_boundary(x, p)
                 for x in [
                     "html",
                     "css",
@@ -250,9 +300,9 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
         (
             "mistral:7b-instruct",
             "Statistical/Matlab/R/SAS detected",
-            lambda: any(x in l for x in ["matlab", "r", "sas"])
+            lambda: any(matches_boundary(x, l) for x in ["matlab", "r", "sas"])
             or any(
-                x in p
+                matches_boundary(x, p)
                 for x in [
                     "matlab",
                     "r language",
@@ -291,9 +341,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# === AI activation flag ===
-activated = False
+# Shared state on the app instance for multi-worker safety
+app.state.activated = False
 
 
 # ==== Middleware ====
@@ -312,19 +361,31 @@ async def log_requests(request: Request, call_next):
         logger.info(f"→ {request.method} {request.url} finished in {duration:.2f}ms")
 
 
+# ==== Root route ====
+@app.get("/")
+async def root():
+    """Welcomes requests and prevents ugly 404 console logs on startup."""
+    return {
+        "status": "online",
+        "service": app.title,
+        "version": app.version,
+        "docs_url": "/docs",
+        "health_check_url": "/health",
+        "agent_activated": app.state.activated,
+    }
+
+
 # ==== Activate & Deactivate ====
 @app.post("/activate")
 async def activate_ai():
-    global activated
-    activated = True
+    app.state.activated = True
     logger.info("✅ AI agent ACTIVATED.")
     return {"status": "activated", "message": "AI agent is active."}
 
 
 @app.post("/deactivate")
 async def deactivate_ai():
-    global activated
-    activated = False
+    app.state.activated = False
     logger.info("🛑 AI agent DEACTIVATED.")
     return {"status": "deactivated", "message": "AI agent is inactive."}
 
@@ -334,7 +395,7 @@ async def deactivate_ai():
 async def health():
     try:
         client = get_ollama_client()
-        models = client.list()
+        models = await client.list()
         return {
             "status": "healthy",
             "models": parse_ollama_models_response(models),
@@ -349,24 +410,24 @@ async def health():
 async def models():
     try:
         client = get_ollama_client()
-        mlist = client.list()
+        mlist = await client.list()
         return {"models": parse_ollama_models_response(mlist)}
     except Exception as e:
         logger.error(f"❌ Model list retrieval failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # ==== Generate code ====
 @app.post("/generate-code", response_model=CodeResponse)
 async def generate_code(request: CodeRequest):
-    if not activated:
-        raise HTTPException(status_code=403, detail="AI Agent inactive. Use /activate.")
+    if not app.state.activated:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI Agent inactive. Use /activate.")
     if not request.prompt or not request.prompt.strip():
-        raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Prompt cannot be empty.")
     try:
         client = get_ollama_client()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ollama client not initialized: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ollama client not initialized: {e}")
 
     selection = select_best_model(request.prompt, request.language)
     chosen_model = request.model or selection["model"]
@@ -374,18 +435,19 @@ async def generate_code(request: CodeRequest):
     task_prompt = (
         "You are a brutal, expert-level AI programmer.\n"
         f"Generate clean, optimized {request.language or '[AUTO DETECTED]'} code for:\n{request.prompt}\n"
+        "Return only code. Do not include explanations or markdown fences."
     )
 
     start = time.time()
     try:
-        response = client.generate(
+        response = await client.generate(
             model=chosen_model,
             prompt=task_prompt,
             options={"temperature": 0.1, "top_p": 0.9, "top_k": 40},
         )
     except Exception as ex:
         logger.exception("💥 Code generation failed")
-        raise HTTPException(status_code=500, detail=f"Code generation failed: {ex}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Code generation failed: {ex}")
 
     elapsed = int((time.time() - start) * 1000)
     code = extract_ollama_response_text(response) or "// No code generated."
@@ -403,24 +465,23 @@ async def generate_code(request: CodeRequest):
 # ==== Fix code ====
 @app.post("/fix-code", response_model=CodeResponse)
 async def fix_code(req: FixRequest):
-    global activated
-
     file_code = req.file_code
     instructions = req.instructions
 
-    if not activated:
-        raise HTTPException(status_code=403, detail="AI Agent inactive. Use /activate.")
+    if not app.state.activated:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI Agent inactive. Use /activate.")
     if not file_code or not file_code.strip():
-        raise HTTPException(status_code=400, detail="Code cannot be empty.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Code cannot be empty.")
     try:
         client = get_ollama_client()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ollama client not initialized: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ollama client not initialized: {e}")
 
     prompt = (
         "You are an expert senior developer.\n"
         f"Given this code:\n{file_code}\n\n"
-        f"Instructions: {instructions or 'Fix all bugs and optimize for best practices.'}"
+        f"Instructions: {instructions or 'Fix all bugs and optimize for best practices.'}\n"
+        "Return only the fixed code. Do not include explanations or markdown fences."
     )
 
     selection = select_best_model(file_code, None)
@@ -428,14 +489,14 @@ async def fix_code(req: FixRequest):
 
     start = time.time()
     try:
-        response = client.generate(
+        response = await client.generate(
             model=chosen_model,
             prompt=prompt,
             options={"temperature": 0.1, "top_p": 0.9, "top_k": 40},
         )
     except Exception as e:
         logger.exception("💥 Code fix failed")
-        raise HTTPException(status_code=500, detail=f"Code fixing failed: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Code fixing failed: {str(e)}")
 
     elapsed = int((time.time() - start) * 1000)
     code = extract_ollama_response_text(response) or "// No fixes generated."
@@ -455,4 +516,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
