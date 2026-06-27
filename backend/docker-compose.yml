@@ -8,6 +8,7 @@ services:
       - ./app:/app/app
     environment:
       - PYTHONUNBUFFERED=1
+      - OLLAMA_HOST=http://ollama:11434
     restart: unless-stopped
     depends_on:
       - ollama

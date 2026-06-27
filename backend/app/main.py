@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from typing import Dict, Optional
 
@@ -15,12 +16,72 @@ logging.basicConfig(
 logger = logging.getLogger("codemaster-ai")
 
 # ==== Ollama client config ====
-OLLAMA_HOST = "http://127.0.0.1:11434"
-try:
-    client = ollama.Client(host=OLLAMA_HOST)
-except Exception as e:
-    logger.error(f"❌ Ollama client init failed: {e}")
-    client = None
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
+client: Optional[ollama.Client] = None
+
+
+def get_ollama_client() -> ollama.Client:
+    global client
+    if client is None:
+        try:
+            client = ollama.Client(host=OLLAMA_HOST)
+            logger.info(f"✅ Ollama client initialized at {OLLAMA_HOST}")
+        except Exception as e:
+            logger.error(f"❌ Ollama client init failed: {e}")
+            raise
+    return client
+
+
+def parse_ollama_models_response(models_response):
+    if hasattr(models_response, "model_dump"):
+        data = models_response.model_dump()
+    elif isinstance(models_response, dict):
+        data = models_response
+    else:
+        data = models_response
+
+    if isinstance(data, list):
+        names = []
+        for item in data:
+            if isinstance(item, dict):
+                name = item.get("name") or item.get("tag") or item.get("id")
+                if name:
+                    names.append(name)
+            elif isinstance(item, str):
+                names.append(item)
+        return names
+
+    if not isinstance(data, dict):
+        return []
+
+    candidates = data.get("models") or data.get("tags") or data.get("items") or []
+    if isinstance(candidates, dict):
+        candidates = [candidates]
+
+    names = []
+    for item in candidates:
+        if isinstance(item, dict):
+            name = item.get("name") or item.get("tag") or item.get("id")
+            if name:
+                names.append(name)
+        elif isinstance(item, str):
+            names.append(item)
+    return names
+
+
+def extract_ollama_response_text(response):
+    code = None
+    if hasattr(response, "response"):
+        code = response.response
+    if not code and hasattr(response, "model_dump"):
+        data = response.model_dump()
+        if isinstance(data, dict):
+            code = data.get("response") or data.get("text") or data.get("output") or data.get("message")
+    if not code and isinstance(response, dict):
+        code = response.get("response") or response.get("text") or response.get("output") or response.get("message")
+    if code is None:
+        return ""
+    return str(code).strip()
 
 
 # ==== Models (Pydantic) ====
@@ -271,24 +332,25 @@ async def deactivate_ai():
 # ==== Health ====
 @app.get("/health")
 async def health():
-    if not client:
-        return {"status": "unhealthy", "error": "Ollama client not initialized"}
     try:
+        client = get_ollama_client()
         models = client.list()
-        return {"status": "healthy", "models": [m["name"] for m in models.get("models", [])]}
+        return {
+            "status": "healthy",
+            "models": parse_ollama_models_response(models),
+        }
     except Exception as e:
         logger.error(f"⚠️ Health check failed: {e}")
-        return {"status": "unhealthy", "error": "Internal server error occurred."}
+        return {"status": "unhealthy", "error": str(e)}
 
 
 # ==== Models list ====
 @app.get("/models")
 async def models():
-    if not client:
-        raise HTTPException(status_code=500, detail="Ollama client not initialized")
     try:
+        client = get_ollama_client()
         mlist = client.list()
-        return {"models": [m["name"] for m in mlist.get("models", [])]}
+        return {"models": parse_ollama_models_response(mlist)}
     except Exception as e:
         logger.error(f"❌ Model list retrieval failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -301,8 +363,10 @@ async def generate_code(request: CodeRequest):
         raise HTTPException(status_code=403, detail="AI Agent inactive. Use /activate.")
     if not request.prompt or not request.prompt.strip():
         raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
-    if not client:
-        raise HTTPException(status_code=500, detail="Ollama client not initialized")
+    try:
+        client = get_ollama_client()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ollama client not initialized: {e}")
 
     selection = select_best_model(request.prompt, request.language)
     chosen_model = request.model or selection["model"]
@@ -324,10 +388,7 @@ async def generate_code(request: CodeRequest):
         raise HTTPException(status_code=500, detail=f"Code generation failed: {ex}")
 
     elapsed = int((time.time() - start) * 1000)
-    code = getattr(response, "response", None) or (
-        response.get("response") if isinstance(response, dict) else ""
-    )
-    code = code.strip() if code else "// No code generated."
+    code = extract_ollama_response_text(response) or "// No code generated."
 
     logger.info(f"✅ Generated {len(code)} chars in {elapsed}ms with {chosen_model}")
     return CodeResponse(
@@ -351,8 +412,10 @@ async def fix_code(req: FixRequest):
         raise HTTPException(status_code=403, detail="AI Agent inactive. Use /activate.")
     if not file_code or not file_code.strip():
         raise HTTPException(status_code=400, detail="Code cannot be empty.")
-    if not client:
-        raise HTTPException(status_code=500, detail="Ollama client not initialized")
+    try:
+        client = get_ollama_client()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ollama client not initialized: {e}")
 
     prompt = (
         "You are an expert senior developer.\n"
@@ -375,10 +438,7 @@ async def fix_code(req: FixRequest):
         raise HTTPException(status_code=500, detail=f"Code fixing failed: {str(e)}")
 
     elapsed = int((time.time() - start) * 1000)
-    code = getattr(response, "response", None) or (
-        response.get("response") if isinstance(response, dict) else ""
-    )
-    code = code.strip() if code else "// No fixes generated."
+    code = extract_ollama_response_text(response) or "// No fixes generated."
 
     logger.info(f"✅ Fixed code with {chosen_model} in {elapsed}ms")
     return CodeResponse(
