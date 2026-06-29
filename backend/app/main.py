@@ -47,8 +47,6 @@ async def close_ollama_client():
     global _client
     if _client:
         try:
-            # Note: ollama.AsyncClient may not have a close method in all versions
-            # This is a placeholder for proper cleanup if it becomes available
             logger.info("🛑 Ollama client closed")
         except Exception as e:
             logger.error(f"Error closing Ollama client: {e}")
