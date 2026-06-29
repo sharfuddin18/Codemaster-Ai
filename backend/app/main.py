@@ -1,13 +1,16 @@
+import asyncio
 import logging
-import os
 import re
 import time
+import uuid
 from typing import Dict, Optional
 
 import ollama
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from config import settings
 
 # ==== Logging config ====
 logging.basicConfig(
@@ -17,21 +20,40 @@ logging.basicConfig(
 logger = logging.getLogger("codemaster-ai")
 
 # ==== Ollama client config ====
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
 _client: Optional[ollama.AsyncClient] = None
+_models_cache: Optional[Dict] = None
+_cache_timestamp: float = 0
+CACHE_TTL = 300  # 5 minutes
 
 
 def get_ollama_client() -> ollama.AsyncClient:
-    """Lazy-initializes the async Ollama client instance."""
+    """Lazy-initializes the async Ollama client instance with timeout."""
     global _client
     if _client is None:
         try:
-            _client = ollama.AsyncClient(host=OLLAMA_HOST)
-            logger.info(f"✅ Async Ollama client initialized at {OLLAMA_HOST}")
+            _client = ollama.AsyncClient(
+                host=settings.OLLAMA_HOST,
+                timeout=settings.OLLAMA_TIMEOUT,
+            )
+            logger.info(f"✅ Async Ollama client initialized at {settings.OLLAMA_HOST}")
         except Exception as e:
             logger.error(f"❌ Ollama client init failed: {e}")
             raise RuntimeError(f"Could not connect to Ollama server: {e}")
     return _client
+
+
+async def close_ollama_client():
+    """Gracefully close the Ollama client on shutdown."""
+    global _client
+    if _client:
+        try:
+            # Note: ollama.AsyncClient may not have a close method in all versions
+            # This is a placeholder for proper cleanup if it becomes available
+            logger.info("🛑 Ollama client closed")
+        except Exception as e:
+            logger.error(f"Error closing Ollama client: {e}")
+        finally:
+            _client = None
 
 
 def clean_llm_markdown(text: str) -> str:
@@ -127,12 +149,14 @@ def extract_ollama_response_text(response):
 
 # ==== Models (Pydantic) ====
 class CodeRequest(BaseModel):
-    prompt: str
-    language: Optional[str] = None
-    model: Optional[str] = None
+    """Request model for code generation."""
+    prompt: str = Field(..., min_length=1, max_length=settings.MAX_PROMPT_LENGTH)
+    language: Optional[str] = Field(None, description="Programming language (optional)")
+    model: Optional[str] = Field(None, description="Override model selection (optional)")
 
 
 class CodeResponse(BaseModel):
+    """Response model for code generation and fixing."""
     code: str
     explanation: str
     confidence: float
@@ -141,8 +165,9 @@ class CodeResponse(BaseModel):
 
 
 class FixRequest(BaseModel):
-    file_code: str
-    instructions: Optional[str] = None
+    """Request model for code fixing."""
+    file_code: str = Field(..., min_length=1, max_length=settings.MAX_CODE_LENGTH)
+    instructions: Optional[str] = Field(None, max_length=1000, description="Fix instructions (optional)")
 
 
 # ==== Model selector ====
@@ -335,7 +360,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -348,23 +373,27 @@ app.state.activated = False
 # ==== Middleware ====
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    """Log all HTTP requests with unique request ID and execution time."""
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    
     start_time = time.time()
-    logger.info(f"{request.method} {request.url}")
+    logger.info(f"[{request_id}] {request.method} {request.url}")
     try:
         response = await call_next(request)
         return response
-    except Exception:
-        logger.exception("🔥 Unhandled error in request")
+    except Exception as e:
+        logger.exception(f"[{request_id}] 🔥 Unhandled error in request")
         raise
     finally:
         duration = (time.time() - start_time) * 1000
-        logger.info(f"→ {request.method} {request.url} finished in {duration:.2f}ms")
+        logger.info(f"[{request_id}] → {request.method} {request.url} finished in {duration:.2f}ms")
 
 
 # ==== Root route ====
-@app.get("/")
+@app.get("/", tags=["Health"])
 async def root():
-    """Welcomes requests and prevents ugly 404 console logs on startup."""
+    """Welcome endpoint and health check."""
     return {
         "status": "online",
         "service": app.title,
@@ -376,58 +405,91 @@ async def root():
 
 
 # ==== Activate & Deactivate ====
-@app.post("/activate")
+@app.post("/activate", tags=["Control"])
 async def activate_ai():
+    """Activate the AI agent to enable code generation and fixing."""
     app.state.activated = True
     logger.info("✅ AI agent ACTIVATED.")
     return {"status": "activated", "message": "AI agent is active."}
 
 
-@app.post("/deactivate")
+@app.post("/deactivate", tags=["Control"])
 async def deactivate_ai():
+    """Deactivate the AI agent to disable code generation and fixing."""
     app.state.activated = False
     logger.info("🛑 AI agent DEACTIVATED.")
     return {"status": "deactivated", "message": "AI agent is inactive."}
 
 
 # ==== Health ====
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 async def health():
+    """Health check endpoint that verifies Ollama connection and lists available models."""
     try:
         client = get_ollama_client()
-        models = await client.list()
+        models = await asyncio.wait_for(client.list(), timeout=settings.OLLAMA_TIMEOUT)
         return {
             "status": "healthy",
             "models": parse_ollama_models_response(models),
         }
+    except asyncio.TimeoutError:
+        logger.error("⚠️ Health check timeout")
+        return {"status": "unhealthy", "error": "Ollama connection timeout"}
     except Exception as e:
         logger.error(f"⚠️ Health check failed: {e}")
         return {"status": "unhealthy", "error": str(e)}
 
 
 # ==== Models list ====
-@app.get("/models")
+@app.get("/models", tags=["Models"])
 async def models():
+    """List available Ollama models with optional caching."""
     try:
+        global _models_cache, _cache_timestamp
+        current_time = time.time()
+        
+        # Return cached models if fresh
+        if _models_cache and (current_time - _cache_timestamp) < CACHE_TTL:
+            logger.info("📦 Returning cached models list")
+            return {"models": _models_cache}
+        
         client = get_ollama_client()
-        mlist = await client.list()
-        return {"models": parse_ollama_models_response(mlist)}
+        mlist = await asyncio.wait_for(client.list(), timeout=settings.OLLAMA_TIMEOUT)
+        _models_cache = parse_ollama_models_response(mlist)
+        _cache_timestamp = current_time
+        
+        return {"models": _models_cache}
+    except asyncio.TimeoutError:
+        logger.error("❌ Model list retrieval timeout")
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Ollama server is not responding"
+        )
     except Exception as e:
         logger.error(f"❌ Model list retrieval failed: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 # ==== Generate code ====
-@app.post("/generate-code", response_model=CodeResponse)
+@app.post("/generate-code", response_model=CodeResponse, tags=["Generation"])
 async def generate_code(request: CodeRequest):
+    """Generate clean, optimized code based on a prompt using AI models."""
     if not app.state.activated:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI Agent inactive. Use /activate.")
-    if not request.prompt or not request.prompt.strip():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Prompt cannot be empty.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI Agent inactive. Use /activate."
+        )
+    
     try:
         client = get_ollama_client()
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ollama client not initialized: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ollama client not initialized: {e}"
+        )
 
     selection = select_best_model(request.prompt, request.language)
     chosen_model = request.model or selection["model"]
@@ -440,14 +502,30 @@ async def generate_code(request: CodeRequest):
 
     start = time.time()
     try:
-        response = await client.generate(
-            model=chosen_model,
-            prompt=task_prompt,
-            options={"temperature": 0.1, "top_p": 0.9, "top_k": 40},
+        response = await asyncio.wait_for(
+            client.generate(
+                model=chosen_model,
+                prompt=task_prompt,
+                options={
+                    "temperature": settings.GENERATION_TEMPERATURE,
+                    "top_p": settings.GENERATION_TOP_P,
+                    "top_k": settings.GENERATION_TOP_K,
+                },
+            ),
+            timeout=settings.GENERATION_TIMEOUT
+        )
+    except asyncio.TimeoutError:
+        logger.exception("💥 Code generation timeout")
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Code generation timed out"
         )
     except Exception as ex:
         logger.exception("💥 Code generation failed")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Code generation failed: {ex}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Code generation failed: {ex}"
+        )
 
     elapsed = int((time.time() - start) * 1000)
     code = extract_ollama_response_text(response) or "// No code generated."
@@ -463,40 +541,59 @@ async def generate_code(request: CodeRequest):
 
 
 # ==== Fix code ====
-@app.post("/fix-code", response_model=CodeResponse)
+@app.post("/fix-code", response_model=CodeResponse, tags=["Generation"])
 async def fix_code(req: FixRequest):
-    file_code = req.file_code
-    instructions = req.instructions
-
+    """Fix bugs and optimize code based on instructions using AI models."""
     if not app.state.activated:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI Agent inactive. Use /activate.")
-    if not file_code or not file_code.strip():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Code cannot be empty.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="AI Agent inactive. Use /activate."
+        )
+    
     try:
         client = get_ollama_client()
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Ollama client not initialized: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ollama client not initialized: {e}"
+        )
 
     prompt = (
         "You are an expert senior developer.\n"
-        f"Given this code:\n{file_code}\n\n"
-        f"Instructions: {instructions or 'Fix all bugs and optimize for best practices.'}\n"
+        f"Given this code:\n{req.file_code}\n\n"
+        f"Instructions: {req.instructions or 'Fix all bugs and optimize for best practices.'}\n"
         "Return only the fixed code. Do not include explanations or markdown fences."
     )
 
-    selection = select_best_model(file_code, None)
+    selection = select_best_model(req.file_code, None)
     chosen_model = selection["model"]
 
     start = time.time()
     try:
-        response = await client.generate(
-            model=chosen_model,
-            prompt=prompt,
-            options={"temperature": 0.1, "top_p": 0.9, "top_k": 40},
+        response = await asyncio.wait_for(
+            client.generate(
+                model=chosen_model,
+                prompt=prompt,
+                options={
+                    "temperature": settings.GENERATION_TEMPERATURE,
+                    "top_p": settings.GENERATION_TOP_P,
+                    "top_k": settings.GENERATION_TOP_K,
+                },
+            ),
+            timeout=settings.GENERATION_TIMEOUT
+        )
+    except asyncio.TimeoutError:
+        logger.exception("💥 Code fix timeout")
+        raise HTTPException(
+            status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+            detail="Code fixing timed out"
         )
     except Exception as e:
         logger.exception("💥 Code fix failed")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Code fixing failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Code fixing failed: {str(e)}"
+        )
 
     elapsed = int((time.time() - start) * 1000)
     code = extract_ollama_response_text(response) or "// No fixes generated."
@@ -511,8 +608,19 @@ async def fix_code(req: FixRequest):
     )
 
 
+# ==== Shutdown event ====
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Gracefully close connections on server shutdown."""
+    await close_ollama_client()
+
+
 # ==== Run server ====
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        app,
+        host=settings.HOST,
+        port=settings.PORT,
+    )
