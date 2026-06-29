@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", message=".*protected namespace.*")
 import asyncio
 import logging
 import re
@@ -208,7 +211,7 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
         ),
         ("codellama:7b-instruct", "Python detected", lambda: matches_boundary("python", l) or matches_boundary("python", p)),
         (
-            "qwen2.5-coder:7b",
+            "qwen2.5-coder:1.5b",
             "JavaScript/Web detected",
             lambda: matches_boundary("javascript", l)
             or matches_boundary("js", l)
@@ -254,7 +257,7 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
             or any(matches_boundary(x, p) for x in ["swift", "kotlin", "android", "ios"]),
         ),
         (
-            "qwen2.5-coder:7b",
+            "qwen2.5-coder:1.5b",
             "SQL/Database detected",
             lambda: matches_boundary("sql", l)
             or matches_boundary("sql", p)
@@ -275,7 +278,7 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
             ),
         ),
         (
-            "qwen2.5-coder:7b",
+            "qwen2.5-coder:1.5b",
             "Shell/Bash detected",
             lambda: any(matches_boundary(x, l) for x in ["bash", "shell", "sh"])
             or any(
@@ -289,9 +292,9 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
                 ]
             ),
         ),
-        ("qwen2.5-coder:7b", "PHP detected", lambda: matches_boundary("php", l) or matches_boundary("php", p)),
+        ("qwen2.5-coder:1.5b", "PHP detected", lambda: matches_boundary("php", l) or matches_boundary("php", p)),
         (
-            "qwen2.5-coder:7b",
+            "qwen2.5-coder:1.5b",
             "DevOps detected",
             lambda: any(matches_boundary(x, l) for x in ["yaml", "docker", "compose"])
             or any(
@@ -305,7 +308,7 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
             ),
         ),
         (
-            "qwen2.5-coder:7b",
+            "qwen2.5-coder:1.5b",
             "Frontend/UI/UX detected",
             lambda: any(matches_boundary(x, l) for x in ["html", "css"])
             or any(
@@ -345,8 +348,8 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
         except Exception:
             continue
 
-    logger.info("Model selected: qwen2.5-coder:7b | Reason: Default fallback")
-    return {"model": "qwen2.5-coder:7b", "reason": "Default fallback"}
+    logger.info("Model selected: qwen2.5-coder:1.5b | Reason: Default fallback")
+    return {"model": "qwen2.5-coder:1.5b", "reason": "Default fallback"}
 
 
 # ==== FastAPI app ====
