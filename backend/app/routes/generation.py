@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 
 from app.config import settings
 from app.models import CodeRequest, CodeResponse, FixRequest
-from app.services.ollama_service import get_ollama_client, select_best_model
+from app.services.ollama_service import generate_with_retry, get_ollama_client, select_best_model
 from app.utils.helpers import extract_ollama_response_text
 from database.db import is_activated
 
@@ -43,7 +43,8 @@ async def generate_code(request: Request, payload: CodeRequest):
     start = time.time()
     try:
         response = await asyncio.wait_for(
-            client.generate(
+            generate_with_retry(
+                client,
                 model=chosen_model,
                 prompt=task_prompt,
                 options={
@@ -110,7 +111,8 @@ async def fix_code(request: Request, payload: FixRequest):
     start = time.time()
     try:
         response = await asyncio.wait_for(
-            client.generate(
+            generate_with_retry(
+                client,
                 model=chosen_model,
                 prompt=prompt,
                 options={

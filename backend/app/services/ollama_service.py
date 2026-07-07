@@ -5,6 +5,7 @@ from typing import Dict, Optional
 import ollama
 
 from app.config import settings
+from app.utils.retry_handler import retry_on_transient_error
 
 logger = logging.getLogger("codemaster-ai")
 
@@ -40,6 +41,12 @@ async def close_ollama_client():
             logger.error(f"Error closing Ollama client: {e}")
         finally:
             _client = None
+
+
+@retry_on_transient_error(retries=3, base_delay=0.5, max_delay=4.0)
+async def generate_with_retry(client, **kwargs):
+    """Generate text via Ollama with exponential backoff for transient failures."""
+    return await client.generate(**kwargs)
 
 
 def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
