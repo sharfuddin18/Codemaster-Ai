@@ -1,10 +1,12 @@
 import asyncio
 import logging
+import os
 import time
 
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.config import settings
+from app.llm.factory import LLMFactory
 from app.services import ollama_service
 from app.utils.helpers import parse_ollama_models_response
 
@@ -25,29 +27,29 @@ async def root(request: Request):
     }
 
 
-@router.get("/health")
-async def health():
-    """Health check endpoint that verifies optional LLM connectivity without crashing the service."""
-    try:
-        if not getattr(settings, "OLLAMA_ENABLED", False):
-            return {
-                "status": "degraded",
-                "message": "LLM provider disabled; skipping Ollama connectivity test",
-                "provider": settings.LLM_PROVIDER,
-            }
+async def health_check():
+    """Return readiness for the configured provider without performing generation."""
+    provider = LLMFactory.create_provider(os.getenv("LLM_PROVIDER") or getattr(settings, "LLM_PROVIDER", "ollama"))
+    status = provider.get_status()
 
-        client = ollama_service.get_ollama_client()
-        models = await asyncio.wait_for(client.list(), timeout=settings.OLLAMA_TIMEOUT)
+    if provider.is_ready():
         return {
             "status": "healthy",
-            "models": parse_ollama_models_response(models),
+            "provider": provider.provider_name,
+            "details": status,
         }
-    except asyncio.TimeoutError:
-        logger.error("⚠️ Health check timeout")
-        return {"status": "degraded", "error": "Ollama connection timeout"}
-    except Exception as exc:
-        logger.error(f"⚠️ Health check failed: {exc}")
-        return {"status": "degraded", "error": str(exc)}
+
+    return {
+        "status": "degraded",
+        "provider": provider.provider_name,
+        "details": status,
+    }
+
+
+@router.get("/health")
+async def health():
+    """Health check endpoint that reports provider readiness without crashing the service."""
+    return await health_check()
 
 
 @router.get("/models")

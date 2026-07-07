@@ -7,9 +7,8 @@ from fastapi import APIRouter, HTTPException, Request, status
 
 from app.config import settings
 from app.models import CodeRequest, CodeResponse, FixRequest
-from app.llm.client import LLMClient
-from app.services.ollama_service import generate_with_retry, get_ollama_client, select_best_model
-from app.utils.helpers import extract_ollama_response_text
+from app.llm.factory import LLMFactory
+from app.services.ollama_service import select_best_model
 from app.utils.vector_engine import CodeVectorEngine
 from database.db import is_activated
 
@@ -57,8 +56,8 @@ async def generate_code(request: Request, payload: CodeRequest):
     selection = select_best_model(payload.prompt, payload.language)
     chosen_model = payload.model or selection["model"]
 
-    llm_client = LLMClient(provider=settings.LLM_PROVIDER)
-    if not llm_client.is_available() and settings.LLM_PROVIDER != "ollama":
+    provider = LLMFactory.create_provider(settings.LLM_PROVIDER)
+    if not provider.is_ready() and settings.LLM_PROVIDER != "ollama":
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"LLM provider '{settings.LLM_PROVIDER}' is not configured"
@@ -75,30 +74,14 @@ async def generate_code(request: Request, payload: CodeRequest):
     start = time.time()
     try:
         if settings.LLM_PROVIDER == "ollama":
-            try:
-                client = get_ollama_client()
-            except Exception as exc:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Ollama client not initialized: {exc}"
-                ) from exc
-            response = await asyncio.wait_for(
-                generate_with_retry(
-                    client,
-                    model=chosen_model,
-                    prompt=task_prompt,
-                    options={
-                        "temperature": settings.GENERATION_TEMPERATURE,
-                        "top_p": settings.GENERATION_TOP_P,
-                        "top_k": settings.GENERATION_TOP_K,
-                    },
-                ),
+            response_text = await asyncio.wait_for(
+                provider.generate(task_prompt, model=chosen_model),
                 timeout=settings.GENERATION_TIMEOUT,
             )
-            code = extract_ollama_response_text(response) or "// No code generated."
+            code = response_text or "// No code generated."
         else:
             response_text = await asyncio.wait_for(
-                llm_client.generate(task_prompt, model=chosen_model),
+                provider.generate(task_prompt, model=chosen_model),
                 timeout=settings.GENERATION_TIMEOUT,
             )
             code = response_text or "// No code generated."
@@ -136,8 +119,8 @@ async def fix_code(request: Request, payload: FixRequest):
             detail="AI Agent inactive. Use /activate."
         )
 
-    llm_client = LLMClient(provider=settings.LLM_PROVIDER)
-    if not llm_client.is_available() and settings.LLM_PROVIDER != "ollama":
+    provider = LLMFactory.create_provider(settings.LLM_PROVIDER)
+    if not provider.is_ready() and settings.LLM_PROVIDER != "ollama":
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"LLM provider '{settings.LLM_PROVIDER}' is not configured"
@@ -158,30 +141,14 @@ async def fix_code(request: Request, payload: FixRequest):
     start = time.time()
     try:
         if settings.LLM_PROVIDER == "ollama":
-            try:
-                client = get_ollama_client()
-            except Exception as exc:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Ollama client not initialized: {exc}"
-                ) from exc
-            response = await asyncio.wait_for(
-                generate_with_retry(
-                    client,
-                    model=chosen_model,
-                    prompt=prompt,
-                    options={
-                        "temperature": settings.GENERATION_TEMPERATURE,
-                        "top_p": settings.GENERATION_TOP_P,
-                        "top_k": settings.GENERATION_TOP_K,
-                    },
-                ),
+            response_text = await asyncio.wait_for(
+                provider.generate(prompt, model=chosen_model),
                 timeout=settings.GENERATION_TIMEOUT,
             )
-            code = extract_ollama_response_text(response) or "// No fixes generated."
+            code = response_text or "// No fixes generated."
         else:
             response_text = await asyncio.wait_for(
-                llm_client.generate(prompt, model=chosen_model),
+                provider.generate(prompt, model=chosen_model),
                 timeout=settings.GENERATION_TIMEOUT,
             )
             code = response_text or "// No fixes generated."
