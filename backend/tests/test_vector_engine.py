@@ -19,3 +19,20 @@ def test_vector_engine_indexes_and_returns_relevant_context(tmp_path: Path):
 
     assert len(context) >= 1
     assert any("fetch_user" in chunk for chunk in context)
+
+
+def test_vector_engine_defaults_to_current_working_directory(tmp_path: Path, monkeypatch):
+    sample_file = tmp_path / "service.py"
+    sample_file.write_text(
+        "def fetch_user(user_id):\n"
+        "    return {'id': user_id, 'active': True}\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.chdir(tmp_path)
+    engine = CodeVectorEngine()
+    engine.build_index()
+    context = engine.search_context("user lookup")
+
+    assert len(context) >= 1
+    assert any("fetch_user" in chunk for chunk in context)

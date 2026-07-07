@@ -19,7 +19,7 @@ class CodeVectorEngine:
     """Simple local vector index over code files using sentence-transformers + FAISS."""
 
     def __init__(self, source_dir: Optional[str | Path] = None, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
-        self.source_dir = Path(source_dir) if source_dir else None
+        self.source_dir = Path(source_dir).resolve() if source_dir else None
         self.model_name = model_name
         self.model = None
         self.index = None
@@ -98,7 +98,9 @@ class CodeVectorEngine:
 
     def build_index(self, source_dir: Optional[str | Path] = None) -> None:
         if source_dir is not None:
-            self.source_dir = Path(source_dir)
+            self.source_dir = Path(source_dir).resolve()
+        elif self.source_dir is None:
+            self.source_dir = Path.cwd().resolve()
 
         self.chunks = []
         self.index = None
@@ -110,9 +112,12 @@ class CodeVectorEngine:
         files = self._iter_source_files()
         if not files:
             self._loaded = True
+            print(f"No source files found under {self.source_dir}")
             return
 
+        print(f"Indexing {len(files)} files from {self.source_dir}")
         for file_path in files:
+            print(f"Indexing: {file_path.relative_to(self.source_dir)}")
             try:
                 text = file_path.read_text(encoding="utf-8")
             except Exception as exc:
@@ -125,6 +130,7 @@ class CodeVectorEngine:
 
         if not self.chunks:
             self._loaded = True
+            print("Indexing complete! No chunks were created.")
             return
 
         embeddings = self._encode_texts(self.chunks)
@@ -132,6 +138,7 @@ class CodeVectorEngine:
         self.index = faiss.IndexFlatL2(dimension)
         self.index.add(embeddings.astype("float32"))
         self._loaded = True
+        print(f"Indexing complete! Added {len(self.chunks)} chunks from {len(files)} files.")
 
     def search_context(self, query: str, top_k: int = 3) -> List[str]:
         if not self._loaded or not self.chunks or self.index is None:
