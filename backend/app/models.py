@@ -1,7 +1,9 @@
 """Pydantic models for API request/response validation."""
 from typing import Optional
+
 from pydantic import BaseModel, Field
-from config import settings
+
+from app.config import settings
 
 
 class CodeRequest(BaseModel):
