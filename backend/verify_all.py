@@ -1,5 +1,5 @@
 import os
-from app.utils.vector_engine import VectorEngine
+from app.utils.vector_engine import CodeVectorEngine
 from database.db import db
 import tenacity
 import faiss
@@ -12,7 +12,7 @@ print(f"✅ Persistence check: Current state {table.all()}")
 
 # Test 2: RAG Engine
 print("Testing RAG Engine initialization...")
-engine = VectorEngine(directory="./app")
+engine = CodeVectorEngine()
 print("✅ RAG Engine initialized successfully.")
 
 print("\n--- ALL SYSTEMS NOMINAL ---")
