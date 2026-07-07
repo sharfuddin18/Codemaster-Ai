@@ -27,8 +27,15 @@ async def root(request: Request):
 
 @router.get("/health")
 async def health():
-    """Health check endpoint that verifies Ollama connection and lists available models."""
+    """Health check endpoint that verifies optional LLM connectivity without crashing the service."""
     try:
+        if not getattr(settings, "OLLAMA_ENABLED", False):
+            return {
+                "status": "degraded",
+                "message": "LLM provider disabled; skipping Ollama connectivity test",
+                "provider": settings.LLM_PROVIDER,
+            }
+
         client = ollama_service.get_ollama_client()
         models = await asyncio.wait_for(client.list(), timeout=settings.OLLAMA_TIMEOUT)
         return {
@@ -37,10 +44,10 @@ async def health():
         }
     except asyncio.TimeoutError:
         logger.error("⚠️ Health check timeout")
-        return {"status": "unhealthy", "error": "Ollama connection timeout"}
+        return {"status": "degraded", "error": "Ollama connection timeout"}
     except Exception as exc:
         logger.error(f"⚠️ Health check failed: {exc}")
-        return {"status": "unhealthy", "error": str(exc)}
+        return {"status": "degraded", "error": str(exc)}
 
 
 @router.get("/models")

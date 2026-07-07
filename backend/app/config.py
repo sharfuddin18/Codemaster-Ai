@@ -14,6 +14,15 @@ class Settings(BaseSettings):
     # Ollama
     OLLAMA_HOST: str = "http://127.0.0.1:11434"
     OLLAMA_TIMEOUT: float = 300.0  # 5 minutes
+    OLLAMA_ENABLED: bool = False
+
+    # LLM provider settings
+    LLM_PROVIDER: str = "ollama"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
+    INDEX_DIR: str = "/workspaces/Codemaster-Ai/backend/data"
 
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:8080"
