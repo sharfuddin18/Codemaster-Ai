@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request, status
 
@@ -8,10 +9,39 @@ from app.config import settings
 from app.models import CodeRequest, CodeResponse, FixRequest
 from app.services.ollama_service import generate_with_retry, get_ollama_client, select_best_model
 from app.utils.helpers import extract_ollama_response_text
+from app.utils.vector_engine import CodeVectorEngine
 from database.db import is_activated
 
 logger = logging.getLogger("codemaster-ai")
 router = APIRouter(tags=["Generation"])
+
+_vector_engine = None
+
+
+def get_vector_engine() -> CodeVectorEngine:
+    global _vector_engine
+    if _vector_engine is None:
+        repo_root = Path(__file__).resolve().parents[3]
+        _vector_engine = CodeVectorEngine(repo_root)
+    return _vector_engine
+
+
+def build_context_prompt(query: str) -> str:
+    try:
+        engine = get_vector_engine()
+        context_chunks = engine.search_context(query, top_k=3)
+    except Exception as exc:
+        logger.warning("Vector context lookup failed: %s", exc)
+        return ""
+
+    if not context_chunks:
+        return ""
+
+    formatted = "\n\n".join(f"[{index}] {chunk}" for index, chunk in enumerate(context_chunks, start=1))
+    return (
+        "Use the following repository context when relevant:\n"
+        f"{formatted}\n"
+    )
 
 
 @router.post("/generate-code", response_model=CodeResponse)
@@ -34,9 +64,11 @@ async def generate_code(request: Request, payload: CodeRequest):
     selection = select_best_model(payload.prompt, payload.language)
     chosen_model = payload.model or selection["model"]
 
+    context_prompt = build_context_prompt(payload.prompt)
     task_prompt = (
         "You are a brutal, expert-level AI programmer.\n"
         f"Generate clean, optimized {payload.language or '[AUTO DETECTED]'} code for:\n{payload.prompt}\n"
+        f"{context_prompt}"
         "Return only code. Do not include explanations or markdown fences."
     )
 
@@ -98,10 +130,12 @@ async def fix_code(request: Request, payload: FixRequest):
             detail=f"Ollama client not initialized: {exc}"
         ) from exc
 
+    context_prompt = build_context_prompt(payload.file_code)
     prompt = (
         "You are an expert senior developer.\n"
         f"Given this code:\n{payload.file_code}\n\n"
         f"Instructions: {payload.instructions or 'Fix all bugs and optimize for best practices.'}\n"
+        f"{context_prompt}"
         "Return only the fixed code. Do not include explanations or markdown fences."
     )
 
