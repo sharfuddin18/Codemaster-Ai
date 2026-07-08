@@ -1,5 +1,5 @@
 import os
-from app.utils.vector_engine import CodeVectorEngine
+from backend.app.utils.vector_engine import CodeVectorEngine
 from database.db import db
 import tenacity
 import faiss
