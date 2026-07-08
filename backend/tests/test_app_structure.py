@@ -1,9 +1,10 @@
 from backend.app.config import settings
 from backend.app.main import app
-
+from fastapi.routing import APIRoute
 
 def test_expected_routes_are_registered():
-    paths = {route.path for route in app.routes}
+    # We filter specifically for APIRoute objects to avoid _IncludedRouter errors
+    paths = {route.path for route in app.routes if isinstance(route, APIRoute)}
 
     assert "/" in paths
     assert "/health" in paths
