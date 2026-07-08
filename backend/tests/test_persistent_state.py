@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.main import app, set_app_state_from_db
+from backend.app.main import app, set_app_state_from_db
 from database.db import set_state, state_table
 
 

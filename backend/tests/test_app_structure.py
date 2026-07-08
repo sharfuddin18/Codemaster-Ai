@@ -1,5 +1,5 @@
-from app.config import settings
-from app.main import app
+from backend.app.config import settings
+from backend.app.main import app
 
 
 def test_expected_routes_are_registered():

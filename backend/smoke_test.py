@@ -2,9 +2,9 @@ import asyncio
 import os
 from pathlib import Path
 
-from app.llm.factory import LLMFactory
-from app.routes.health import health_check
-from app.utils.vector_engine import CodeVectorEngine, IndexConfig
+from backend.app.llm.factory import LLMFactory
+from backend.app.routes.health import health_check
+from backend.app.utils.vector_engine import CodeVectorEngine, IndexConfig
 
 
 def main() -> None:
