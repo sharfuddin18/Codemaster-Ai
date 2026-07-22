@@ -52,7 +52,7 @@ async def generate_with_retry(client, **kwargs):
 def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
     """Dynamically routes code tasks to specific models using clean word boundaries."""
     p = (prompt or "").lower()
-    l = (language or "").lower()
+    lang = (language or "").lower()
 
     def matches_boundary(keyword: str, text: str) -> bool:
         """Helper to check for exact word boundaries, resolving substring collision errors."""
@@ -83,12 +83,12 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
                 ]
             ),
         ),
-        ("codellama:7b-instruct", "Python detected", lambda: matches_boundary("python", l) or matches_boundary("python", p)),
+        ("codellama:7b-instruct", "Python detected", lambda: matches_boundary("python", lang) or matches_boundary("python", p)),
         (
             "qwen2.5-coder:1.5b",
             "JavaScript/Web detected",
-            lambda: matches_boundary("javascript", l)
-            or matches_boundary("js", l)
+            lambda: matches_boundary("javascript", lang)
+            or matches_boundary("js", lang)
             or any(
                 matches_boundary(x, p)
                 for x in [
@@ -104,36 +104,36 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
                 ]
             ),
         ),
-        ("mistral:7b-instruct", "Java detected", lambda: matches_boundary("java", l) or matches_boundary("java", p)),
+        ("mistral:7b-instruct", "Java detected", lambda: matches_boundary("java", lang) or matches_boundary("java", p)),
         (
             "mistral:7b-instruct",
             "C/C++ detected",
-            lambda: any(matches_boundary(x, l) for x in ["c++", "cpp", "c language"])
+            lambda: any(matches_boundary(x, lang) for x in ["c++", "cpp", "c language"])
             or any(matches_boundary(x, p) for x in ["c++", "cpp"]),
         ),
-        ("mistral:7b-instruct", "C# detected", lambda: matches_boundary("c#", l) or matches_boundary("c#", p)),
+        ("mistral:7b-instruct", "C# detected", lambda: matches_boundary("c#", lang) or matches_boundary("c#", p)),
         (
             "mistral:7b-instruct",
             "Go detected",
-            lambda: matches_boundary("go", l) or matches_boundary("golang", l) or matches_boundary("go lang", p),
+            lambda: matches_boundary("go", lang) or matches_boundary("golang", lang) or matches_boundary("go lang", p),
         ),
-        ("mistral:7b-instruct", "Rust detected", lambda: matches_boundary("rust", l) or matches_boundary("rust", p)),
-        ("mistral:7b-instruct", "Ruby detected", lambda: matches_boundary("ruby", l) or matches_boundary("ruby", p)),
+        ("mistral:7b-instruct", "Rust detected", lambda: matches_boundary("rust", lang) or matches_boundary("rust", p)),
+        ("mistral:7b-instruct", "Ruby detected", lambda: matches_boundary("ruby", lang) or matches_boundary("ruby", p)),
         (
             "mistral:7b-instruct",
             "TypeScript detected",
-            lambda: matches_boundary("typescript", l) or matches_boundary("typescript", p),
+            lambda: matches_boundary("typescript", lang) or matches_boundary("typescript", p),
         ),
         (
             "mistral:7b-instruct",
             "Swift/Kotlin detected",
-            lambda: any(matches_boundary(x, l) for x in ["swift", "kotlin"])
+            lambda: any(matches_boundary(x, lang) for x in ["swift", "kotlin"])
             or any(matches_boundary(x, p) for x in ["swift", "kotlin", "android", "ios"]),
         ),
         (
             "qwen2.5-coder:1.5b",
             "SQL/Database detected",
-            lambda: matches_boundary("sql", l)
+            lambda: matches_boundary("sql", lang)
             or matches_boundary("sql", p)
             or any(
                 matches_boundary(x, p)
@@ -154,7 +154,7 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
         (
             "qwen2.5-coder:1.5b",
             "Shell/Bash detected",
-            lambda: any(matches_boundary(x, l) for x in ["bash", "shell", "sh"])
+            lambda: any(matches_boundary(x, lang) for x in ["bash", "shell", "sh"])
             or any(
                 matches_boundary(x, p)
                 for x in [
@@ -166,11 +166,11 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
                 ]
             ),
         ),
-        ("qwen2.5-coder:1.5b", "PHP detected", lambda: matches_boundary("php", l) or matches_boundary("php", p)),
+        ("qwen2.5-coder:1.5b", "PHP detected", lambda: matches_boundary("php", lang) or matches_boundary("php", p)),
         (
             "qwen2.5-coder:1.5b",
             "DevOps detected",
-            lambda: any(matches_boundary(x, l) for x in ["yaml", "docker", "compose"])
+            lambda: any(matches_boundary(x, lang) for x in ["yaml", "docker", "compose"])
             or any(
                 matches_boundary(x, p)
                 for x in [
@@ -184,7 +184,7 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
         (
             "qwen2.5-coder:1.5b",
             "Frontend/UI/UX detected",
-            lambda: any(matches_boundary(x, l) for x in ["html", "css"])
+            lambda: any(matches_boundary(x, lang) for x in ["html", "css"])
             or any(
                 matches_boundary(x, p)
                 for x in [
@@ -200,7 +200,7 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
         (
             "mistral:7b-instruct",
             "Statistical/Matlab/R/SAS detected",
-            lambda: any(matches_boundary(x, l) for x in ["matlab", "r", "sas"])
+            lambda: any(matches_boundary(x, lang) for x in ["matlab", "r", "sas"])
             or any(
                 matches_boundary(x, p)
                 for x in [
@@ -219,7 +219,7 @@ def select_best_model(prompt: str, language: Optional[str]) -> Dict[str, str]:
             if cond():
                 logger.info(f"Model selected: {model} | Reason: {reason}")
                 return {"model": model, "reason": reason}
-        except Exception:
+        except Exception:  # nosec B112
             continue
 
     logger.info("Model selected: qwen2.5-coder:1.5b | Reason: Default fallback")

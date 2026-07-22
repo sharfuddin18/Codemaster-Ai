@@ -1,8 +1,5 @@
-import os
 from backend.app.utils.vector_engine import CodeVectorEngine
 from database.db import db
-import tenacity
-import faiss
 
 print("✅ Dependencies verified.")
 
