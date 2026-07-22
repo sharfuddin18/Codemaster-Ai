@@ -107,7 +107,7 @@ class CodeVectorEngine:
             tokens = re.findall(r"[A-Za-z0-9_]+", text.lower())
             vector = np.zeros(dim, dtype="float32")
             for token in tokens:
-                digest = hashlib.md5(token.encode("utf-8")).digest()
+                digest = hashlib.md5(token.encode("utf-8"), usedforsecurity=False).digest()
                 index = int.from_bytes(digest[:2], "big") % dim
                 vector[index] += 1.0
             if np.linalg.norm(vector) > 0:
