@@ -1,64 +1,133 @@
-Codemaster-AI 🚀
+🚀 CodeMaster AI
+Context-aware local AI coding assistant designed to digest real-world codebases, map full project trees, and deliver hyper-relevant code generation.
 
-I built Codemaster-AI because I wanted a coding assistant that didn't just feel like another wrapper around an API. I needed something that lived in my terminal, respected my privacy by running locally, and actually understood the context of my project.
+Built and maintained by Sharfuddin — a self-taught vibe coder, builder, and self-deploying developer.
 
-Whether you're debugging a stubborn script or need to scaffold a new feature, this tool is designed to work with your flow, not interrupt it.
+💡 Why CodeMaster AI?
+Most AI coding tools struggle when you drop them into a massive, multi-file codebase. They either lose track of imports, hallucinate function signatures, or burn through token limits trying to read files they don't need.
 
-What’s Under the Hood?
-I’ve structured this project with a modular, agent-based architecture. It’s not just a chat bot; it’s an engine designed to grow.
+CodeMaster AI solves this by pairing local LLM inference with intelligent codebase indexing. Instead of dumping raw files into a prompt, it maps your project, pulls only relevant context via vector search, and hands the LLM a clean, structured view of your software architecture.
 
-Agentic Power: I've separated logic into specialized agents—Code Reviewer, Explainer, and Generator—so it can handle complex tasks without getting confused.
+🛠️ How It Works & Key Architecture
+Plaintext
+[ User Prompt / Code Request ]
+            │
+            ▼
+   ┌─────────────────┐
+   │   Smart Tree    │ ──► Traverses repo & builds context graph
+   └────────┬────────┘
+            │
+            ▼
+   ┌─────────────────┐
+   │ Vector + RAG    │ ──► Fetches relevant snippets via semantic search
+   └────────┬────────┘
+            │
+            ▼
+   ┌─────────────────┐
+   │ FastAPI Backend │ ──► Validates request state & structures payload
+   └────────┬────────┘
+            │
+            ▼
+   ┌─────────────────┐
+   │ Ollama Pipeline │ ──► Runs inference locally (Fast & Private)
+   └─────────────────┘
+1. Smart Tree AST & Context Mapping
+Reads your project structure dynamically without choking on bloated node_modules, .git, or build outputs.
 
-Privacy-First: It runs entirely on your machine via Ollama. Your code never leaves your local environment.
+Maps module dependencies and file relationships so the AI understands where a function lives and what depends on it.
 
-CLI-Centric: I created native scripts (ai-generate, ai-fix) because I hate leaving my terminal to interact with an AI.
+2. RAG & Vector Embeddings
+Converts code blocks, function definitions, and docstrings into dense vector representations.
 
-Context-Aware: It uses a local vector engine (all-MiniLM-L6-v2) to index your codebase, meaning it actually understands the files you're working on.
+Uses Retrieval-Augmented Generation (RAG) to pull only the exact code snippets needed for a prompt, keeping context windows lightweight and fast.
 
-Tech Stack
-I chose tools that are fast, robust, and easy to maintain:
+3. Ollama Service Integration
+Powered by local LLM orchestration using Ollama.
 
-Core: Python 3.12, FastAPI, Pydantic (V2)
+Zero external API vendor lock-in for core generation — keep your code local, private, and fast.
 
-AI/LLM: Ollama (for local inference)
+4. Robust FastAPI Core
+Built on an asynchronous Python/FastAPI backend (backend/app).
 
-Search: Sentence-Transformers for semantic code indexing
+Strict health check assertions, input sanitization, and fallback parsing for raw LLM outputs.
 
-Automation: PowerShell 7 for the heavy lifting
+🔒 Security & Safety First
+Local-First Processing: Code context can run fully on-device via Ollama, preventing proprietary codebase leaks to third-party endpoints.
 
-How to Get Going
-Make sure you've got Docker Desktop and Ollama running first.
+Sanitized Parser Pipeline: Defensive response parsing handles malformed LLM outputs and JSON non-dict fallbacks without crashing the server.
 
-Grab the code:
+Explicit App State Management: Health routes require explicit activation verification (app.state.activated) to ensure backend services are initialized before serving traffic.
+
+🧪 Testing & Quality Assurance
+I treat test coverage as a first-class feature. Every route, helper function, and fallback condition is regularly verified against edge cases.
+
+Status: 🟢 11/11 Unit Tests Passing
+
+Test Framework: pytest + pytest-cov
+
+Current Coverage Highlights:
+
+Health & App Lifecycle: backend/app/routes/health.py (Fully verified)
+
+Helper Utilities: test_helpers.py (Validates non-dict fallback parsing & text extraction)
+
+Generation Endpoints: test_generation.py (Validates payload structure and app state handling)
 
 Bash
-git clone https://github.com/sharfuddin18/codemaster-ai.git
-cd Codemaster-Ai
-Point it to your local LLM:
+# Run the test suite locally
+pytest -v
 
+# Run with coverage report
+pytest --cov=backend/app tests/
+🧰 Tech Stack
+Layer	Technology
+Language	Python 3.11+
+Backend API	FastAPI, Uvicorn
+Inference Engine	Ollama
+Vector Indexing & RAG	Vector Embeddings + Smart Tree AST Parser
+Testing & CI	Pytest, Pytest-Cov, GitHub Actions
+⚡ Quickstart
+1. Prerequisites
+Python 3.11+
+
+Ollama installed and running locally
+
+2. Clone & Setup
 Bash
-export LLM_PROVIDER=ollama
-export OLLAMA_ENABLED=true
-export OLLAMA_BASE_URL=http://localhost:11434
-Fire up the backend:
+# Clone the repository
+git clone https://github.com/your-username/codemaster-ai.git
+cd codemaster-ai
 
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+3. Environment Configuration
+Create a .env file in the root directory:
+
+Code snippet
+APP_ENV=development
+OLLAMA_BASE_URL=http://localhost:11434
+MODEL_NAME=qwen2.5-coder # or your preferred local model
+4. Launch the Server
 Bash
-cd backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-Using it
-Once the server is running, you can test it with a quick curl request:
+# Start backend server
+uvicorn backend.app.main:app --reload
+Server will start on [http://127.0.0.1:8000](http://127.0.0.1:8000) with interactive docs available at /docs.
 
-Generate a function:
+📌 Project Roadmap
+[x] Core FastAPI backend setup & health monitoring
 
-Bash
-curl -X POST http://localhost:8000/generate-code \
-     -H "Content-Type: application/json" \
-     -d '{"prompt": "Write a Python function to calculate Fibonacci numbers"}'
-Let's Connect
-I’m actively building this out, and I’d love to see where it goes. If you’ve got ideas for new agents, better prompt handling, or just want to report a bug, open an issue or drop a PR.
+[x] Ollama service integration with response extraction helpers
 
-Happy coding!
+[x] Smart Tree context generator
 
-Author: Sharfuddin Ahmed (@sharfuddin18)
+[x] Full unit testing suite for helpers & generation routes (PR #42 merged)
 
-Licensed under MIT.
+[ ] Boost unit test coverage on generation.py and ollama_service.py (>80%)
+
+[ ] Add caching layer for frequent vector lookup queries
+
+Built with ☕ and persistence by Sharfuddin. Feel free to open an issue or submit a PR!
