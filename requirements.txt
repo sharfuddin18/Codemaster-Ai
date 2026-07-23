@@ -2,3 +2,4 @@ fastapi
 uvicorn
 pydantic
 ollama
+rank-bm25
