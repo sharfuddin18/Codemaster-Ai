@@ -3,3 +3,4 @@ uvicorn
 pydantic
 ollama
 rank-bm25
+rank-bm25
