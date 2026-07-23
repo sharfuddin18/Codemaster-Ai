@@ -1,4 +1,22 @@
-Codemaster-AI 🚀A privacy-first, agent-driven local AI coding engine designed to live inside your terminal, index your entire codebase, and handle real-world development tasks without sending your code to external servers.Built with ☕ and late-night persistence by Sharfuddin Ahmed (@sharfuddin18) — self-taught vibe coder, builder, and self-deploying dev.💡 Why I Built ThisI got tired of AI coding assistants that feel like basic API wrappers around third-party endpoints. I needed something that:Lives in my terminal — I hate switching windows to copy-paste code snippets.Respects code privacy — Everything runs 100% locally on my hardware via Ollama.Understands full-project context — It doesn't just read a single active file; it maps project relationships so it doesn't hallucinate missing imports or broken signatures.Whether I'm debugging a stubborn script or scaffolding a new backend feature, Codemaster-AI works with my workflow rather than interrupting it.🏗️ Architecture & How It WorksInstead of dumping massive raw files into a single context window, Codemaster-AI breaks down code parsing into dedicated modular pipelines:Plaintext               ┌────────────────────────┐
+Codemaster-AI 🚀
+A privacy-first, agent-driven local AI coding engine designed to live inside your terminal, index your entire codebase, and handle real-world development tasks without sending your code to external servers.
+
+Built with ☕ and late-night persistence by Sharfuddin Ahmed (@sharfuddin18) — self-taught vibe coder, builder, and self-deploying dev.
+
+💡 Why I Built This
+Traditional AI coding assistants often feel like basic API wrappers around third-party endpoints. Codemaster-AI was built to address three core developer needs:
+
+Terminal-First Workflow — Eliminates context switching by living directly inside your terminal.
+
+Absolute Code Privacy — Runs 100% locally on your hardware via Ollama, ensuring zero data leakage.
+
+Full-Project Context Awareness — Maps project relationships rather than reading a single active file, preventing hallucinated imports or broken signatures.
+
+🏗️ Architecture & How It Works
+Instead of dumping massive raw files into a single context window, Codemaster-AI uses modular processing pipelines:
+
+Plaintext
+               ┌────────────────────────┐
                │    Terminal / CLI      │
                │ (ai-generate / ai-fix) │
                └───────────┬────────────┘
@@ -27,12 +45,78 @@ Codemaster-AI 🚀A privacy-first, agent-driven local AI coding engine designed 
       ┌─────────────────────────────────────────┐
       │ Local Ollama Inference (Private Engine) │
       └─────────────────────────────────────────┘
-Specialized Agentic PowerInstead of relying on one generic prompt, tasks are routed to specialized agents:Code Reviewer: Scans for anti-patterns, edge cases, and performance bottlenecks.Explainer: Walks through complex functions and structural logic in simple terms.Generator: Drafts clean, typed, production-ready code blocks tailored to your project.Context Indexing (Smart Tree + RAG + Hybrid Search)Smart Tree Mapping: Traverses repository directories while skipping heavy clutter (node_modules, .git, build outputs) to build an accurate layout of your project structure.Hybrid Retrieval (Dense + Sparse Search): Combines Vector Semantic Search (sentence-transformers via all-MiniLM-L6-v2) with BM25 Keyword Search (rank-bm25) for exact class, function, or variable name matching. This drastically reduces missing imports and incorrect function signatures.Unified Git Patch AgentsInstead of only returning standard markdown code blocks, the generator agent can output standard .patch files.Allows ai-fix and backend tasks to apply code changes cleanly and directly to your local working directory via git apply.Native CLI ScriptsFeatures custom terminal utilities like ai-generate and ai-fix powered by PowerShell 7 automation, allowing you to run generation tasks directly from command-line workflows.🔒 Security & ResilienceZero External Data Leakage: Powered by local LLM orchestration via Ollama. Your codebase stays strictly on your local machine.Defensive Output Parsing: Backend parsers safely sanitize raw LLM outputs, gracefully falling back on non-dict returns to prevent API crashes.App State Verification: Health routes explicitly check server initialization (app.state.activated) before serving generation requests.🧪 Test Suite & QualityI treat test coverage as a priority, not an afterthought. The core utility helpers, hybrid retriever, and API routes are covered by unit and integration test cases.Status: 🟢 20/20 Unit & Integration Tests Passing (Validated across Python 3.10 and 3.11 via GitHub Actions CI/CD)Test Stack: pytest + pytest-cov + respxVerified Components:Endpoint health status and persistent app activation stateOllama text extraction and non-dict fallback parsingHybrid retriever dense + sparse matching and fallback behaviorsUnified git patch generation and dry-run applicationIncremental file hashing and caching servicesBash# Run tests locally
+Specialized Agentic Power
+Code Reviewer: Scans for anti-patterns, edge cases, and performance bottlenecks.
+
+Explainer: Walks through complex functions and structural logic in simple terms.
+
+Generator: Drafts clean, typed, production-ready code blocks tailored to your project.
+
+Context Indexing & Retrieval
+Smart Tree Mapping: Traverses repository directories while skipping clutter (node_modules, .git, build outputs) to map project layout accurately.
+
+Hybrid Retrieval (Dense + Sparse Search): Combines Vector Semantic Search (sentence-transformers via all-MiniLM-L6-v2) with BM25 Keyword Search (rank-bm25) for exact class, function, or variable matching.
+
+Unified Git Patch Agents: Outputs standard .patch files instead of raw markdown blocks, allowing ai-fix to apply code changes directly via git apply.
+
+🚀 Recent Architecture & Feature Iterations
+⚡ Phase 1: Performance & Caching (Engine Scalability)
+Incremental File Hashing: Computes MD5/SHA256 hashes during tree traversal to skip unchanged files and avoid redundant embedding generation.
+
+Persistent Local Vector Cache: Stores vector embeddings locally (.codemaster/cache.db) for instant startup times on repeat queries.
+
+Batch Embedding Pipeline: Processes code chunks in async batches to leverage multi-core CPU capabilities.
+
+🧪 Phase 2: Test Suite Hardening & Mocking
+Ollama HTTP Client Mocking: Utilizes httpx and respx to test LLM generation offline, simulating slow connections, socket timeouts, and malformed JSON streams.
+
+Coverage Boost: Expanded test coverage across core generation and Ollama orchestration services.
+
+CLI Integration Tests: Added automated execution tests for ai-generate and ai-fix scripts.
+
+🧠 Phase 3: High-Precision Context & Git Patch Agents
+Hybrid Search Integration: Merged vector search with BM25 keyword matching to accurately target specific code identifiers.
+
+Direct Patch Application: Implemented patch generation workflows to safely apply automated adjustments directly to local file structures.
+
+🔒 Security & Resilience
+Zero External Data Leakage: Local LLM orchestration keeps code strictly on your machine.
+
+Defensive Output Parsing: Sanitizes raw LLM responses and handles non-dictionary returns gracefully to prevent API failures.
+
+App State Verification: Health routes verify server initialization (app.state.activated) prior to processing generation requests.
+
+🧪 Test Suite & Quality
+Status: 🟢 20/20 Unit & Integration Tests Passing (Validated across Python 3.10 and 3.11 via GitHub Actions CI/CD)
+
+Test Stack: pytest + pytest-cov + respx
+
+Bash
+# Run tests locally
 PYTHONPATH=.:backend:backend/app pytest -v
 
 # Run tests with coverage output
 pytest --cov=backend/app tests/
-🚀 Recent Architecture & Feature Iterations⚡ Phase 1: Performance & Caching (Engine Scalability)Incremental File Hashing: Computes MD5/SHA256 hashes for files during tree traversal. If a file hasn't changed since the last run, embedding generation is skipped completely.Persistent Local Vector Cache: Stores vector embeddings in lightweight local storage (.codemaster/cache.db) for instant startup times on repeat queries.Batch Embedding Pipeline: Processes code chunks in async batches rather than sequentially to utilize multi-core CPU capabilities.🧪 Phase 2: Test Suite Hardening & MockingMocking Ollama HTTP Client: Utilizes httpx and respx mocking to test LLM generation routes offline, simulating slow connections, socket timeouts, and malformed JSON streams.Target Coverage Boost: Significantly increased core component coverage across generation and Ollama orchestration services.CLI Integration Tests: Added automated execution tests for ai-generate and ai-fix scripts.🧠 Phase 3: High-Precision Context & Git Patch AgentsHybrid Retrieval (Dense + Sparse Search): Integrated Vector Search with BM25 Keyword Search (rank-bm25) to target exact code identifiers.Unified Git Patch Generator: Enabled patch formatting capabilities so updates can be directly applied via git apply.🧰 Tech StackDomainTechnologyLanguage & RuntimePython 3.12API FrameworkFastAPI + Pydantic (V2)Local LLM EngineOllamaVector Search / RAGSentence-Transformers (all-MiniLM-L6-v2) + BM25 (rank-bm25)CLI & AutomationPowerShell 7 native scripts (ai-generate, ai-fix)ContainerizationDocker DesktopTestingPytest, Pytest-Cov, Respx⚡ QuickstartPrerequisitesOllama installed and running locallyDocker Desktop (optional, if running containerized)Python 3.12+1. Clone & Set UpBashgit clone https://github.com/sharfuddin18/codemaster-ai.git
+🧰 Tech Stack
+Domain	Technology
+Language & Runtime	Python 3.12
+API Framework	FastAPI + Pydantic (V2)
+Local LLM Engine	Ollama
+Vector Search / RAG	Sentence-Transformers (all-MiniLM-L6-v2) + BM25 (rank-bm25)
+CLI & Automation	PowerShell 7 native scripts (ai-generate, ai-fix)
+Containerization	Docker Desktop
+Testing	Pytest, Pytest-Cov, Respx
+⚡ Quickstart
+Prerequisites
+Ollama installed and running locally
+
+Docker Desktop (optional, if running containerized)
+
+Python 3.12+
+
+1. Clone & Set Up
+Bash
+git clone https://github.com/sharfuddin18/codemaster-ai.git
 cd codemaster-ai
 
 # Set up virtual environment
@@ -42,19 +126,37 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 pip install -r backend/requirements.txt
-2. Configure EnvironmentSet your environment variables to point to your local Ollama setup:Bashexport LLM_PROVIDER=ollama
+2. Configure Environment
+Set environment variables to point to your local Ollama setup:
+
+Bash
+export LLM_PROVIDER=ollama
 export OLLAMA_ENABLED=true
 export OLLAMA_BASE_URL=http://localhost:11434
-3. Run Backend ServerBashcd backend
+3. Run Backend Server
+Bash
+cd backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-Interactive API documentation will be available at http://localhost:8000/docs.💻 Usage ExamplesOption 1: API Endpoint (Curl)Bashcurl -X POST http://localhost:8000/generate-code \
+Interactive API documentation will be available at http://localhost:8000/docs.
+
+💻 Usage Examples
+Option 1: API Endpoint (Curl)
+Bash
+curl -X POST http://localhost:8000/generate-code \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "Write an async Python function to calculate Fibonacci numbers with memoization"
   }'
-Option 2: CLI Native HelpersPowerShell# Fast terminal code generation
+Option 2: CLI Native Helpers
+PowerShell
+# Fast terminal code generation
 ai-generate -Prompt "Create a FastAPI route for user authentication"
 
 # Instant terminal code fix
 ai-fix -File "./backend/app/routes/generation.py"
-🤝 Let's ConnectI’m actively iterating on Codemaster-AI to make it faster, smarter, and even better integrated with local workflows. If you have ideas for new specialized agents, context improvements, or run into any bugs, feel free to open an issue or submit a Pull Request.Author: Sharfuddin Ahmed (@sharfuddin18)License: MIT License
+🤝 Let's Connect
+I’m actively iterating on Codemaster-AI to make it faster, smarter, and seamlessly integrated with local workflows. If you have ideas for new specialized agents, context improvements, or bug reports, feel free to open an issue or submit a Pull Request.
+
+Author: Sharfuddin Ahmed (@sharfuddin18)
+
+License: MIT License
