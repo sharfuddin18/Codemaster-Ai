@@ -1,4 +1,59 @@
-OllamaSetup.exe
-data/ollama/models/
-*.pyc
+# Python & Bytecode
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment & Credentials
+.env
+.env.local
+.venv
+
+# Local Binaries & Installers
+OllamaSetup.exe
+act
+
+# Local AI Models & Heavy Data Storage
+data/ollama/models/
+*.bin
+*.gguf
+
+# IDE & Editor Specific (VS Code / Codespaces)
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+.DS_Store
+
+# Logs & Temporary Files
+*.log
+ollama.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test & Local Run Artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tbls/
