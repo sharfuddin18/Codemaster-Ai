@@ -1,10 +1,8 @@
-# TODO
+# TODO List - Codemaster-AI
 
-- [ ] Replace `backend/app/main.py` with a valid, properly-indented FastAPI implementation while preserving:
-  - endpoints: `/activate`, `/deactivate`, `/health`, `/models`, `/generate-code`, `/fix-code`
-  - activation gating behavior
-  - model selection logic and chosen-model override via request.model
-  - Ollama host config and options
-  - logging + CORS middleware
-- [ ] Run a quick syntax/import check for the module.
-
+- [x] Replace `backend/app/main.py` with a valid, properly-indented FastAPI implementation preserving endpoints (`/activate`, `/deactivate`, `/health`, `/models`, `/generate-code`, `/fix-code`), activation gating, model selection logic, Ollama host config, and logging/CORS middleware.
+- [x] Run quick syntax and import checks for backend modules.
+- [x] Set up and verify GitHub repository infrastructure (`sharfuddin18/Codemaster-Ai`), including multi-version Python package workflows and Dependabot security updates.
+- [x] Integrate local action runner tooling (`act`) for GitHub Actions testing inside development environments.
+- [ ] Complete and verify Phase 3 hybrid retrieval and caching implementation.
+- [ ] Finalize local Docker Compose orchestration testing for Ollama and FastAPI services.
