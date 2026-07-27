@@ -1,0 +1,9 @@
+{
+  "project_goal": "Refactor Codemaster-AI core pipeline for Phase 6",
+  "history": [
+    {
+      "user": "How is context retrieved?",
+      "ai": "Context is retrieved using hybrid BM25 + Vector Search."
+    }
+  ]
+}
