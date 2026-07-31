@@ -12,7 +12,7 @@ faiss-cpu>=1.14.3
 tinydb
 rank-bm25
 
-rich>=13.0.0
+rich>=15.0.0
 textual>=8.2.8
 
 tabulate>=0.10.0
