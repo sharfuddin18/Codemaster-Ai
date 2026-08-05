@@ -133,7 +133,7 @@ class CodeVectorEngine:
                 files.append(path)
         return files
 
-    def _chunk_text(self, text: str, size: int = 400, overlap: int = 80) -> List[str]:
+    def _chunk_text(self, text: str, size: int = 120, overlap: int = 40) -> List[str]:
         if not text.strip():
             return []
 

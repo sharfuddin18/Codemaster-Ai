@@ -39,7 +39,7 @@ class HybridRetriever:
         return [0.0 for _ in scores]
 
     def search(
-        self, query: str, top_k: int = 5, alpha: float = 0.5
+        self, query: str, top_k: int = 5, alpha: float = 0.5, min_score: float = 0.0
     ) -> List[Dict[str, Any]]:
         if not self.documents:
             return []
@@ -77,6 +77,9 @@ class HybridRetriever:
             doc_entry["dense_score"] = dense_score
             combined_results.append(doc_entry)
 
-        # 4. Sort and Return Top K
+        # 4. Filter by minimum hybrid_score and return Top K
+        if min_score and min_score > 0.0:
+            combined_results = [r for r in combined_results if r.get("hybrid_score", 0.0) >= float(min_score)]
+
         combined_results.sort(key=lambda x: x["hybrid_score"], reverse=True)
         return combined_results[:top_k]
