@@ -6,10 +6,11 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.config import settings
-from app.models import CodeRequest, CodeResponse, FixRequest
+from app.models import CodeRequest, CodeResponse, FixRequest, Provenance, Source
 from app.llm.factory import LLMFactory
 from app.services.ollama_service import select_best_model
 from app.utils.vector_engine import CodeVectorEngine
+from app.services.response_verifier import verify_response
 from database.db import is_activated
 
 logger = logging.getLogger("codemaster-ai")
@@ -38,10 +39,25 @@ def build_context_prompt(query: str) -> str:
         return ""
 
     formatted = "\n\n".join(f"[{index}] {chunk}" for index, chunk in enumerate(context_chunks, start=1))
-    return (
+
+    # Build a mapping of chunk index -> {file, snippet} when available for provenance.
+    chunk_map: dict[int, dict[str, str]] = {}
+    for idx, chunk in enumerate(context_chunks, start=1):
+        lines = chunk.splitlines()
+        first_line = lines[0] if lines else ""
+        if first_line.startswith("File:"):
+            src = first_line.replace("File:", "", 1).strip()
+            snippet = "\n".join(lines[1:]).strip()
+        else:
+            src = "unknown"
+            snippet = "\n".join(lines).strip()
+        chunk_map[idx] = {"file": src, "snippet": snippet}
+
+    prompt_text = (
         "Use the following repository context when relevant:\n"
         f"{formatted}\n"
     )
+    return prompt_text, chunk_map
 
 
 @router.post("/generate-code", response_model=CodeResponse)
@@ -63,9 +79,24 @@ async def generate_code(request: Request, payload: CodeRequest):
             detail=f"LLM provider '{settings.LLM_PROVIDER}' is not configured"
         )
 
-    context_prompt = build_context_prompt(payload.prompt)
+    context_prompt, index_map = build_context_prompt(payload.prompt)
+
+    # If no repository context is available, abstain to avoid hallucination.
+    if not context_prompt:
+        return CodeResponse(
+            code="// Aborted: no supporting repository context found.",
+            explanation="Abstained due to lack of repository context.",
+            confidence=0.0,
+            model_used=chosen_model,
+            elapsed_ms=0,
+        )
+
     task_prompt = (
-        "You are a brutal, expert-level AI programmer.\n"
+        "You are a careful, expert AI programmer.\n"
+        "Only use information from the provided repository context.\n"
+        "When you reference or rely on repository content, cite the supporting context by placing the chunk index in square brackets (e.g. [1], [2]) inline next to the code or comment.\n"
+        "If you cannot find supporting repository context for the request, respond with exactly:\n"
+        "I don't have enough repository context to answer this. Abstaining.\n"
         f"Generate clean, optimized {payload.language or '[AUTO DETECTED]'} code for:\n{payload.prompt}\n"
         f"{context_prompt}"
         "Return only code. Do not include explanations or markdown fences."
@@ -100,6 +131,33 @@ async def generate_code(request: Request, payload: CodeRequest):
 
     elapsed = int((time.time() - start) * 1000)
 
+    # Verify the model output contains required provenance citations and that
+    # cited indices reference actual retrieved chunks.
+    allowed_indices = list(index_map.keys())
+    ok, reason, cited = verify_response(code, allowed_indices=allowed_indices)
+    if not ok:
+        logger.warning("Generation output rejected: %s", reason)
+        return CodeResponse(
+            code="// Aborted: generated output missing required repository citations.",
+            explanation="Abstained due to missing citations in model output.",
+            confidence=0.0,
+            model_used=chosen_model,
+            elapsed_ms=elapsed,
+        )
+
+    # Build provenance metadata mapping cited indices -> source files and snippets
+    provenance = Provenance(
+        cited_indices=cited,
+        sources={
+            str(i): Source(
+                file=index_map.get(i, {}).get("file", "unknown"),
+                snippet=index_map.get(i, {}).get("snippet", ""),
+            )
+            for i in cited
+        },
+        verification_status="verified",
+    )
+
     logger.info(f"✅ Generated {len(code)} chars in {elapsed}ms with {chosen_model}")
     return CodeResponse(
         code=code,
@@ -107,6 +165,7 @@ async def generate_code(request: Request, payload: CodeRequest):
         confidence=0.95,
         model_used=chosen_model,
         elapsed_ms=elapsed,
+        provenance=provenance,
     )
 
 
@@ -126,9 +185,23 @@ async def fix_code(request: Request, payload: FixRequest):
             detail=f"LLM provider '{settings.LLM_PROVIDER}' is not configured"
         )
 
-    context_prompt = build_context_prompt(payload.file_code)
+    selection = select_best_model(payload.file_code, None)
+    chosen_model = selection["model"]
+
+    context_prompt, index_map = build_context_prompt(payload.file_code)
+
+    if not context_prompt:
+        return CodeResponse(
+            code="// Aborted: no supporting repository context found.",
+            explanation="Abstained due to lack of repository context.",
+            confidence=0.0,
+            model_used=chosen_model,
+            elapsed_ms=0,
+        )
+
     prompt = (
         "You are an expert senior developer.\n"
+        "Only use the provided repository context to inform fixes; cite chunk indices inline when referencing repository content.\n"
         f"Given this code:\n{payload.file_code}\n\n"
         f"Instructions: {payload.instructions or 'Fix all bugs and optimize for best practices.'}\n"
         f"{context_prompt}"
@@ -167,6 +240,30 @@ async def fix_code(request: Request, payload: FixRequest):
 
     elapsed = int((time.time() - start) * 1000)
 
+    allowed_indices = list(index_map.keys())
+    ok, reason, cited = verify_response(code, allowed_indices=allowed_indices)
+    if not ok:
+        logger.warning("Fix output rejected: %s", reason)
+        return CodeResponse(
+            code="// Aborted: generated output missing required repository citations.",
+            explanation="Abstained due to missing citations in model output.",
+            confidence=0.0,
+            model_used=chosen_model,
+            elapsed_ms=elapsed,
+        )
+
+    provenance = Provenance(
+        cited_indices=cited,
+        sources={
+            str(i): Source(
+                file=index_map.get(i, {}).get("file", "unknown"),
+                snippet=index_map.get(i, {}).get("snippet", ""),
+            )
+            for i in cited
+        },
+        verification_status="verified",
+    )
+
     logger.info(f"✅ Fixed code with {chosen_model} in {elapsed}ms")
     return CodeResponse(
         code=code,
@@ -174,4 +271,5 @@ async def fix_code(request: Request, payload: FixRequest):
         confidence=0.95,
         model_used=chosen_model,
         elapsed_ms=elapsed,
+        provenance=provenance,
     )
