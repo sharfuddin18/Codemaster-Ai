@@ -9,6 +9,7 @@ from app.config import settings
 from app.routes.control import router as control_router
 from app.routes.generation import router as generation_router
 from app.routes.health import router as health_router
+from app.routes.mcp import router as mcp_router
 from app.services.ollama_service import close_ollama_client
 from database.db import get_state
 
@@ -65,6 +66,7 @@ async def log_requests(request: Request, call_next):
 app.include_router(health_router)
 app.include_router(control_router)
 app.include_router(generation_router)
+app.include_router(mcp_router)
 
 
 @app.on_event("shutdown")
