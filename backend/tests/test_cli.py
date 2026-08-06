@@ -3,6 +3,7 @@ from pathlib import Path
 
 import requests
 
+from app.models import CodeRequest
 from cli_tools.ai import main, resolve_prompt
 
 
@@ -123,3 +124,9 @@ def test_main_rejects_empty_prompt_without_http_request(monkeypatch):
 
     assert main([""]) == 2
     assert called is False
+
+
+def test_api_accepts_long_prompt_supported_by_phase_1():
+    prompt = "x" * 10000
+    request = CodeRequest(prompt=prompt)
+    assert len(request.prompt) == 10000
