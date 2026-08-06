@@ -13,8 +13,9 @@ Thank you for your interest in contributing to Codemaster-AI! We appreciate your
 ### Development Setup
 1. **Clone the Repository:**
    ```bash
-   git clone [https://github.com/sharfuddin18/Codemaster-Ai.git](https://github.com/sharfuddin18/Codemaster-Ai.git)
+   git clone https://github.com/sharfuddin18/Codemaster-Ai.git
    cd Codemaster-Ai
+   ```
 
 ## Pull Request Checklist
 
