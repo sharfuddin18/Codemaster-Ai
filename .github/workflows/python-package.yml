@@ -30,9 +30,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
-        # Install requirements if they exist
-        if [ -f backend/requirements.txt ]; then
-            pip install -r backend/requirements.txt
+        # The project requirements are kept at repository root.
+        if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+        elif [ -f backend/requirements.txt ]; then
+            python -m pip install -r backend/requirements.txt
         fi
 
     - name: Lint with flake8
