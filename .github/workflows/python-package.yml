@@ -37,6 +37,8 @@ jobs:
             echo "No dependency file found" >&2
             exit 1
         fi
+        # Explicitly verify the packages used by the application configuration.
+        python -m pip install "pydantic-settings>=2.0.0"
         python -m pip check
         python -c "import requests, pydantic_settings; print('CI dependency preflight: OK')"
 
@@ -51,4 +53,4 @@ jobs:
       run: |
         pytest --import-mode=importlib backend/
 
-# Phase 1 verification trigger: run against the current Sam branch state.
+# Phase 1 verification: current Sam branch only.
