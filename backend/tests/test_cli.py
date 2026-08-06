@@ -130,3 +130,15 @@ def test_api_accepts_long_prompt_supported_by_phase_1():
     prompt = "x" * 10000
     request = CodeRequest(prompt=prompt)
     assert len(request.prompt) == 10000
+
+
+def test_api_rejects_prompt_above_phase_1_limit():
+    prompt = "x" * 20001
+    try:
+        CodeRequest(prompt=prompt)
+    except ValueError:
+        return
+    except Exception as exc:
+        assert "string_too_long" in str(exc) or "20000" in str(exc)
+        return
+    raise AssertionError("expected validation failure for prompt over 20000 characters")
