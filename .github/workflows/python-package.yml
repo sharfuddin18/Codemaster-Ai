@@ -35,7 +35,12 @@ jobs:
             python -m pip install -r requirements.txt
         elif [ -f backend/requirements.txt ]; then
             python -m pip install -r backend/requirements.txt
+        else
+            echo "No dependency file found" >&2
+            exit 1
         fi
+        python -m pip check
+        python -c "import requests, pydantic_settings; print('CI dependency preflight: OK')"
 
     - name: Lint with flake8
       run: |
