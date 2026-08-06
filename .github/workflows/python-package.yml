@@ -50,3 +50,5 @@ jobs:
         PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
       run: |
         pytest --import-mode=importlib backend/
+
+# Phase 1 verification trigger: run against the current Sam branch state.
