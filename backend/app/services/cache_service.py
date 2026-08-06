@@ -1,7 +1,12 @@
 import hashlib
 import json
 import os
-import sqlite_vec
+
+try:
+    import sqlite_vec
+except ImportError:
+    sqlite_vec = None
+
 try:
     import sqlean as sqlite3
     # Some sqlean shims may not expose the usual connect API; fallback if missing
@@ -21,15 +26,16 @@ class VectorCacheService:
 
     def _get_connection(self):
         conn = sqlite3.connect(self.db_path)
-        # Try to enable loadable extensions and load sqlite_vec if available.
-        try:
-            if hasattr(conn, "enable_load_extension"):
-                conn.enable_load_extension(True)
-            sqlite_vec.load(conn)
-        except Exception:
-            # Some environments disable extension loading; sqlite_vec features
-            # are optional for the unit tests (we persist embeddings as JSON).
-            pass
+        # sqlite-vec is optional. The cache currently stores embeddings
+        # as JSON, so ordinary SQLite is sufficient.
+        if sqlite_vec is not None:
+            try:
+                if hasattr(conn, "enable_load_extension"):
+                    conn.enable_load_extension(True)
+                sqlite_vec.load(conn)
+            except Exception:
+                # Some environments disable extension loading.
+                pass
         return conn
 
     def _init_db(self) -> None:
