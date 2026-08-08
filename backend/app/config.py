@@ -34,7 +34,9 @@ class Settings(BaseSettings):
     GENERATION_TIMEOUT: float = 300.0  # 5 minutes
 
     # Request validation
-    MAX_PROMPT_LENGTH: int = 5000
+    # Keep the API aligned with the CLI's multiline/file/stdin support while
+    # retaining a finite bound to protect the local inference service.
+    MAX_PROMPT_LENGTH: int = 20000
     MAX_CODE_LENGTH: int = 50000
 
     # API
