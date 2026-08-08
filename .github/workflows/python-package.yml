@@ -29,14 +29,26 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
+        
+        dep_found=false
+        
         if [ -f requirements.txt ]; then
+            echo "Installing root requirements.txt..."
             python -m pip install -r requirements.txt
-        elif [ -f backend/requirements.txt ]; then
+            dep_found=true
+        fi
+        
+        if [ -f backend/requirements.txt ]; then
+            echo "Installing backend/requirements.txt..."
             python -m pip install -r backend/requirements.txt
-        else
+            dep_found=true
+        fi
+        
+        if [ "$dep_found" = false ]; then
             echo "No dependency file found" >&2
             exit 1
         fi
+
         # Explicitly verify the packages used by the application configuration.
         python -m pip install "pydantic-settings>=2.0.0"
         python -m pip check
@@ -52,5 +64,3 @@ jobs:
         PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
       run: |
         pytest --import-mode=importlib backend/
-
-# Phase 1 verification: current Sam branch only.
