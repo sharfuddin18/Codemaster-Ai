@@ -63,4 +63,4 @@ jobs:
       env:
         PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/backend
       run: |
-        pytest --import-mode=importlib backend/
+        pytest --import-mode=importlib backend/ tests/
