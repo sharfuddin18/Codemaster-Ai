@@ -1,9 +1,28 @@
 """Pydantic models for API request/response validation."""
-from typing import Optional
+from typing import Optional, Any, Dict
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.config import settings
+
+
+class Source(BaseModel):
+    file: str
+    snippet: str
+
+
+class Provenance(BaseModel):
+    cited_indices: list[int]
+    sources: Dict[str, Source]
+    verification_status: Optional[str] = Field(None, description="Optional verification status (e.g., 'verified')")
+
+    @field_validator("sources", mode="after")
+    @classmethod
+    def validate_sources(cls, sources: Dict[str, Source]) -> Dict[str, Source]:
+        for key, source in sources.items():
+            if not source.snippet or not source.snippet.strip():
+                raise ValueError(f"snippet for source '{key}' must not be empty")
+        return sources
 
 
 class CodeRequest(BaseModel):
@@ -40,6 +59,10 @@ class CodeResponse(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0, description="Confidence score (0-1)")
     model_used: str = Field(..., description="Name of the model that generated the code")
     elapsed_ms: int = Field(..., ge=0, description="Time taken in milliseconds")
+    provenance: Optional[Provenance] = Field(
+        None,
+        description="Optional provenance metadata: cited indices and source file mapping",
+    )
 
     model_config = ConfigDict(
         json_json_schema_extra = {
