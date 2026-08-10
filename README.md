@@ -1,6 +1,14 @@
 # Codemaster-AI 🚀
 
-> **A local-first, terminal-first AI coding engine built around project context, hybrid retrieval, agent orchestration, provider abstraction, patch-based workflows, and evidence-driven verification.**
+> **Local-first • Terminal-first • Project-aware AI coding**
+>
+> A coding engine built around project context, hybrid retrieval, agent orchestration, provider abstraction, patch workflows, and evidence-driven verification.
+
+<p align="center">
+  <strong>Created & Engineered by Sharfuddin Ahmed</strong><br>
+  <sub>AI Vibe Coder • Systems Architect • Creator of Codemaster-AI</sub><br><br>
+  <a href="https://github.com/sharfuddin18">@sharfuddin18</a>
+</p>
 
 <p align="center">
   <a href="https://github.com/sharfuddin18/Codemaster-Ai/actions"><img src="https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" alt="CI/CD"></a>
@@ -11,41 +19,29 @@
   <a href="https://github.com/sharfuddin18/Codemaster-Ai/blob/main/LICENSE.txt"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"></a>
 </p>
 
-<p align="center">
-  <strong>Engineering status: Phase 1 ✅ · Phase 2 ✅ · Phase 3 ⏳</strong>
-</p>
+<p align="center"><strong>Phase 1 ✅ · Phase 2 ✅ · Phase 3 ⏳</strong></p>
 
 ---
 
-## 🧭 Engineering Development Record — 11-08-2026
-
-This README is the **current project-facing engineering overview** for `sharfuddin18/Codemaster-Ai` on `main`.
+## 🧭 Current Engineering State
 
 | Item | Current state |
 |---|---|
-| **Project** | Codemaster-AI |
-| **Development model** | Phase-based implementation + verification |
-| **Author / maintainer** | Sharfuddin Ahmed (`sharfuddin18`) |
-| **Primary runtime target** | Python 3.12+ |
-| **Application framework** | FastAPI |
-| **Local inference path** | Ollama |
-| **Current completed phase** | **Phase 2 — Core Implementation & Integration** |
-| **Current authoritative branch** | `main` |
-| **Phase 2 PR** | **#116 — merged into `main`** |
-| **Phase 2 implementation commit** | `52efb62` |
-| **Phase 2 merge commit** | `7368bb3` |
-| **Phase 2 verification** | **40 passed · 0 failed · 0 errors · 1 warning** |
-| **Release state** | Engineering development / verification — not yet declared final release-ready |
+| **Creator / Maintainer** | **Sharfuddin Ahmed · `sharfuddin18`** |
+| **Branch** | `main` — authoritative integration branch |
+| **Completed phases** | Phase 1 + Phase 2 |
+| **Phase 2 PR** | [#116 — merged](https://github.com/sharfuddin18/Codemaster-Ai/pull/116) |
+| **Phase 2 commit** | `52efb62` → merge `7368bb3` |
+| **Verification** | **40 passed · 0 failed · 0 errors · 1 warning** |
+| **Release state** | Engineering verification in progress |
 
-> **Evidence rule:** a module existing in the repository is not treated as proof that its full behavior is production-ready. Codemaster-AI distinguishes **Implemented → Tested → Verified → CI Verified → Integrated → Release-Ready**.
+> **Evidence before claims:** `Implemented → Tested → Verified → CI Verified → Integrated → Release-Ready`
 
 ---
 
 ## 🎯 Mission
 
-**Build a project-aware AI coding engine that helps developers understand, generate, review, and modify code without turning the development workflow into a cloud-dependent black box.**
-
-Codemaster-AI is being engineered around a simple idea:
+**Build a project-aware AI coding engine that helps developers understand, generate, review, and modify code while keeping the developer in control of the repository.**
 
 ```text
 Developer intent
@@ -54,102 +50,86 @@ Project context
       ↓
 Retrieval + orchestration
       ↓
-Local / configured model provider
+Model provider
       ↓
-Generated result or patch
+Result / patch
       ↓
 Verification + provenance
       ↓
 Developer review
 ```
 
-The goal is not merely to wrap an LLM in an HTTP endpoint. The goal is to build an **auditable coding workflow** in which context, model selection, generated changes, and verification remain explicit architectural responsibilities.
-
 ## 🔭 Vision
 
-Codemaster-AI is evolving toward a **terminal-centered, project-aware coding platform** where the developer remains in control of the repository and the AI operates as an inspectable engineering assistant.
+Codemaster-AI is evolving toward a **terminal-centered, inspectable coding platform**:
 
-The long-term architectural direction is:
-
-- 🖥️ **Terminal-first** — CLI/TUI workflows remain central.
-- 🔒 **Local-first** — Ollama provides a local inference path when configured.
-- 🧠 **Project-aware** — retrieval works across repository context instead of isolated snippets.
-- 🔎 **Hybrid retrieval** — semantic vectors and lexical BM25 retrieval complement each other.
-- 🧩 **Provider-agnostic** — model access is separated behind provider/factory abstractions.
-- 🤖 **Agent-oriented** — generation, review, explanation, and routing can be separated into explicit responsibilities.
-- 🩹 **Patch-oriented** — generated modifications can be reviewed as patches before application.
-- 📚 **Evidence-oriented** — provenance and verification are first-class concerns.
-- 🧪 **Verification-driven** — implementation claims are backed by executable evidence wherever applicable.
+- 🖥️ **Terminal-first** — CLI / TUI workflows
+- 🔒 **Local-first** — Ollama local inference path
+- 🧠 **Project-aware** — repository-level context
+- 🔎 **Hybrid RAG** — dense vectors + BM25
+- 🧩 **Provider-agnostic** — factory/provider abstraction
+- 🤖 **Agent-oriented** — explicit coding workflows
+- 🩹 **Patch-oriented** — review changes before applying
+- 📚 **Evidence-driven** — provenance + verification
 
 ---
 
-# 🏗️ Architecture at a Glance
+# 🏗️ Architecture
 
 ```mermaid
 flowchart TD
     U[Developer] --> I[CLI / TUI / MCP]
-    I --> API[FastAPI Application]
-    API --> A[Code-Agent & Orchestration Layer]
+    I --> API[FastAPI]
+    API --> A[Code-Agent / Orchestration]
     A --> R[Hybrid Retrieval]
-    A --> F[LLM Factory / Provider Layer]
-    A --> V[Provenance & Response Verification]
-    R --> D[Dense Vector Retrieval]
-    R --> B[BM25 Keyword Retrieval]
-    D --> C[Project Index / Vector State]
+    A --> F[LLM Factory]
+    A --> V[Provenance / Verification]
+    R --> D[Dense Vectors]
+    R --> B[BM25]
+    D --> C[Project Index / Cache]
     B --> C
     F --> O[Ollama]
-    F --> OP[OpenAI Provider]
-    F --> FB[Fallback Provider]
-    O --> G[Generated Result / Patch]
+    F --> OP[OpenAI]
+    F --> FB[Fallback]
+    O --> G[Result / Patch]
     OP --> G
     FB --> G
     G --> V
-    V --> OUT[Verified / Inspectable Output]
+    V --> OUT[Inspectable Output]
 ```
 
-### Architectural principle
+**Design rule:** routing, retrieval, agents, providers, generation, patches, and verification remain explicit architectural responsibilities.
 
-The system is intentionally layered so that **HTTP routing, agent behavior, retrieval, provider selection, model execution, patch generation, and verification do not become one undifferentiated component**.
-
-The current architecture is documented in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+[Architecture details →](ARCHITECTURE.md)
 
 ---
 
 # 🧱 Technical Stack
 
-| Layer | Technology / Component | Role |
+| Layer | Technology | Purpose |
 |---|---|---|
-| Language | **Python 3.12+** | Primary implementation language / runtime target |
-| API | **FastAPI** | Application and service boundary |
-| Validation | **Pydantic / pydantic-settings** | Structured models and configuration |
-| Local inference | **Ollama** | Local LLM execution path |
-| Provider abstraction | **LLM Factory + providers** | Provider/model selection and isolation |
-| Retrieval | **Dense vectors + BM25** | Hybrid project-context retrieval |
-| Embeddings | **`all-MiniLM-L6-v2`** | Dense semantic representation |
-| Vector layer | **FAISS / vector services** | Vector indexing and similarity retrieval |
-| Persistence | **TinyDB / local state** | Application and session-oriented state |
-| Agent layer | **Code Agent / specialized flows** | Coding, review, explanation and orchestration |
-| Interface | **CLI + Textual/Rich TUI** | Terminal-first developer experience |
-| Integration | **MCP endpoints** | External tool/editor integration boundary |
-| Patch workflow | **`.patch` + Git** | Reviewable generated changes |
-| Testing | **pytest** | Automated verification |
-| Static analysis | **flake8** | Linting / syntax-risk checks |
-| Security | **CodeQL** | Automated code/security analysis |
-| CI/CD | **GitHub Actions** | Repository-level verification gate |
-| Dependency hygiene | **Dependabot** | Dependency update automation |
-| Benchmarking | **`run_benchmark.py`** | Performance / behavior benchmarking infrastructure |
-
-> **Compatibility note:** the project-facing runtime target is Python 3.12+, while the current GitHub Actions Python workflow also exercises Python 3.10 and 3.11. This support-matrix alignment is tracked as engineering hygiene rather than being hidden by documentation.
+| Runtime | **Python 3.12+** | Core implementation |
+| API | **FastAPI + Pydantic** | Application boundary + models |
+| Local AI | **Ollama** | Local LLM execution |
+| Providers | **LLM Factory** | Model/provider isolation |
+| Retrieval | **Dense + BM25** | Hybrid project context |
+| Embeddings | **`all-MiniLM-L6-v2`** | Semantic representation |
+| Vectors | **FAISS / vector services** | Similarity retrieval |
+| State | **TinyDB / local state** | Persistence |
+| Agents | **Code Agent** | Coding + orchestration |
+| Interface | **CLI + Textual/Rich TUI** | Terminal UX |
+| Integration | **MCP** | External tool boundary |
+| Changes | **`.patch` + Git** | Reviewable modifications |
+| Verification | **pytest + flake8** | Automated checks |
+| Security | **CodeQL** | Code/security analysis |
+| CI/CD | **GitHub Actions** | Integration gate |
+| Dependencies | **Dependabot** | Update automation |
 
 ---
 
 # 🧠 Core Systems
 
-## 1. Project-aware context
-
-Codemaster-AI is designed around repository-level context rather than isolated prompts. The architecture brings together project indexing, retrieval, file relationships, vector representations, cached state, and provenance information.
-
-## 2. Hybrid RAG
+### 🔎 Hybrid RAG
 
 ```text
                     User query
@@ -164,118 +144,53 @@ Codemaster-AI is designed around repository-level context rather than isolated p
                         ↓
                 Relevant context
                         ↓
-                 Agent / LLM flow
+                  Agent / LLM
 ```
 
-### Dense retrieval
+Dense retrieval captures semantic similarity; BM25 helps with exact identifiers, symbols, configuration keys, and terminology.
 
-Semantic retrieval is intended to capture conceptually related code even when exact keywords differ.
-
-### BM25 retrieval
-
-Lexical retrieval is valuable for exact identifiers, symbols, configuration keys, API names, and terminology.
-
-### Hybrid retrieval
-
-Combining both provides a broader retrieval signal than relying exclusively on embeddings or exact keyword matching.
-
----
-
-## 3. Incremental indexing & cache direction
-
-The indexing architecture is designed to avoid unnecessary work when repository content has not changed:
+### ⚡ Incremental indexing
 
 ```text
-Repository tree
-      ↓
-File traversal
-      ↓
-Hash / state comparison
-      ↓
- ┌────┴────┐
- │         │
-unchanged changed
- │         │
-skip      embed / update
- │         │
- └────┬────┘
-      ↓
-Persistent vector / cache state
+Repository → Traverse → Hash/state check
+                         ↓
+                ┌────────┴────────┐
+              unchanged        changed
+                  ↓                ↓
+                 skip         embed/update
+                  └────────┬───────┘
+                           ↓
+                    Vector / cache state
 ```
 
-The intended benefit is reduced redundant embedding/indexing work on larger repositories.
+### 🤖 Agent + provider flow
 
----
+```text
+Request → Routing → Retrieval → Agent → Provider
+                                      ↓
+                              Ollama / OpenAI / Fallback
+                                      ↓
+                              Response / Patch
+                                      ↓
+                              Verification
+```
 
-## 4. LLM provider architecture
+### 📚 Provenance
 
 ```mermaid
 flowchart LR
-    APP[Application / Agent] --> FACTORY[LLM Factory]
-    FACTORY --> O[Ollama]
-    FACTORY --> OP[OpenAI]
-    FACTORY --> FB[Fallback]
-    O --> MODEL[Provider Interface]
-    OP --> MODEL
-    FB --> MODEL
-    MODEL --> APP
+    C[Context] --> G[Generation]
+    G --> P[Result / Patch]
+    P --> V[Verification]
+    V -->|validated| O[Inspectable Output]
+    V -->|not validated| R[Developer Review]
 ```
 
-The provider layer separates application behavior from the details of individual inference backends. Ollama remains the primary local-first path, while alternative providers are represented explicitly rather than being confused with local execution.
+> **An LLM-generated answer is not considered trustworthy merely because generation succeeded.**
 
 ---
 
-## 5. Code-agent flow
-
-```text
-Developer request
-      ↓
-Intent / routing
-      ↓
-Project-context retrieval
-      ↓
-Code-agent orchestration
-      ↓
-LLM provider selection
-      ↓
-Generation / explanation / review
-      ↓
-Patch or response
-      ↓
-Provenance / verification
-      ↓
-Developer inspection
-```
-
-This is the architectural distinction between a **coding engine** and a simple model wrapper: the model is one component inside a larger, inspectable workflow.
-
----
-
-## 6. Provenance & verification
-
-Codemaster-AI treats generation and verification as separate responsibilities.
-
-```mermaid
-flowchart TD
-    CTX[Retrieved Context] --> GEN[Generation]
-    GEN --> RESP[Response / Patch]
-    RESP --> PROV[Provenance / Citation Data]
-    PROV --> VERIFY[Verification]
-    VERIFY -->|validated| OUT[Inspectable Result]
-    VERIFY -->|not validated| REVIEW[Developer Review / Rejection]
-```
-
-The principle is deliberately conservative:
-
-> **An LLM-generated answer is not considered trustworthy merely because it was generated successfully.**
-
-Phase 2 included dedicated automated verification for provenance behavior.
-
----
-
-# 🖥️ Developer Experience
-
-## Terminal-first workflow
+# 🖥️ Developer Workflow
 
 ```text
                  ┌─────────────────────┐
@@ -293,401 +208,217 @@ Phase 2 included dedicated automated verification for provenance behavior.
                  Context + Agents + LLM
 ```
 
-### CLI
+### 🩹 Patch workflow
 
-Command-line helpers support terminal-oriented coding operations.
-
-### TUI
-
-`run_tui.py` provides the interactive terminal interface built around Textual/Rich components.
-
-### MCP
-
-MCP endpoints provide an integration boundary for external tools and editors to request capabilities, retrieve context, invoke generation, and interact with coding workflows.
+```text
+AI request → Context → Generation → Patch
+                                      ↓
+                              Developer review
+                                      ↓
+                                  git apply
+                                      ↓
+                              Repository change
+```
 
 ---
 
-# 🩹 Patch-based Development
-
-Generated changes are designed to be reviewable before they are applied to a working tree.
+# 🧪 Verification Model
 
 ```text
-AI request
+PLANNED
    ↓
-Context retrieval
+IMPLEMENTED
    ↓
-Generation
+TESTED
    ↓
-Patch creation
+VERIFIED
    ↓
-Developer review
+CI VERIFIED
    ↓
-`git apply`
+INTEGRATED
    ↓
-Repository change
+RELEASE READY
 ```
 
-This keeps the developer in control of generated modifications and makes the change itself inspectable as a Git patch.
-
----
-
-# 🧪 Evidence-Driven Verification Model
-
-Codemaster-AI deliberately separates engineering maturity levels:
-
-```text
-┌──────────────┐
-│    PLANNED   │
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│ IMPLEMENTED  │
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│    TESTED    │
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│   VERIFIED   │
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│ CI VERIFIED  │
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│  INTEGRATED  │
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│ RELEASE READY│
-└──────────────┘
-```
-
-### What the states mean
-
-| State | Meaning |
+| State | Evidence |
 |---|---|
-| **Implemented** | Relevant code exists. |
-| **Tested** | Automated/manual tests have been executed. |
-| **Verified** | Expected behavior was established under the applicable verification conditions. |
-| **CI Verified** | Repository automation independently validated the change. |
-| **Integrated** | The verified change was merged into the authoritative `main` branch. |
-| **Release-Ready** | Broader runtime, security, dependency, documentation, metadata, integration, and release requirements are satisfied. |
+| **Implemented** | Code exists |
+| **Tested** | Tests executed |
+| **Verified** | Expected behavior established |
+| **CI Verified** | Repository automation passed |
+| **Integrated** | Merged into `main` |
+| **Release-Ready** | Broader runtime, security, dependency, documentation, and release gates satisfied |
 
-> **A passing test proves the tested behavior under the tested conditions. It does not automatically prove complete system correctness.**
+> **A passing test proves tested behavior — not complete system correctness.**
 
 ---
 
-# 🧩 Phase-Based Engineering
-
-The project is being built incrementally rather than declaring the architecture complete simply because corresponding modules exist.
+# 🧩 Phase History
 
 ```mermaid
 flowchart LR
-    P1[Phase 1\nFoundation] --> M1[PR #115\nMerged]
-    M1 --> P2[Phase 2\nCore Implementation]
-    P2 --> M2[PR #116\nMerged]
-    M2 --> MAIN[main\nAuthoritative Baseline]
-    MAIN --> P3[Phase 3\nNext Scope]
+    P1[Phase 1\nFoundation] --> PR1[PR #115\nMerged]
+    PR1 --> P2[Phase 2\nCore Implementation]
+    P2 --> PR2[PR #116\nMerged]
+    PR2 --> M[main\nAuthoritative Baseline]
+    M --> P3[Phase 3\nNext Scope]
     P3 --> P4[Phase 4]
     P4 --> P5[Phase 5\nRelease Readiness]
 ```
 
-## Phase 1 — Foundation
+### Phase 1 — Foundation
 
-**Status: ✅ COMPLETE / VERIFIED / MERGED**
+**✅ Complete / Verified / Merged**
 
-Phase 1 established the repository and development foundation required for the later architecture.
+Repository structure, environment configuration, dependency/test foundation, security hygiene, generated-artifact cleanup, and Git baseline.
 
-Key areas:
+### Phase 2 — Core Implementation & Integration
 
-- Repository and backend structure
-- Environment configuration
-- Dependency organization
-- Test foundation
-- Project configuration
-- Repository hygiene
-- Security hygiene
-- Generated-artifact cleanup
-- Git baseline
+**✅ Complete / Verified / Merged** · `52efb62` · [PR #116](https://github.com/sharfuddin18/Codemaster-Ai/pull/116) · merge `7368bb3`
 
-A key foundation result was removing inappropriate local development state from repository history, including local environment/credential artifacts, while preserving safe example configuration such as `backend/.env.example`.
+Integrated FastAPI routes, LLM abstraction/factory, Ollama/OpenAI/fallback providers, code-agent wiring, vector service, MCP routes, and provenance verification.
 
----
+**Verification:** `19` phase tests passed · `40` backend tests passed · `0` failures · `0` errors · `1` non-blocking warning.
 
-## Phase 2 — Core Implementation & Integration
-
-**Status: ✅ COMPLETE / VERIFIED / MERGED**
-
-**Development branch:** `phase-2-implementation`
-
-**Implementation commit:** `52efb62`
-
-**Pull request:** [#116 — feat: complete phase 2 implementation](https://github.com/sharfuddin18/Codemaster-Ai/pull/116)
-
-**Merge commit:** `7368bb3`
-
-### Scope
-
-Phase 2 integrated and corrected the core application architecture across:
-
-- FastAPI application and routes
-- Generation and health endpoints
-- MCP routes
-- LLM client abstraction
-- Provider/model factory
-- Ollama integration
-- OpenAI provider
-- Fallback provider
-- Code-agent wiring
-- Application models
-- Vector-service integration
-- Provenance verification
-- Associated automated tests
-
-### Implementation footprint
-
-**13 files changed · 37 insertions · 37 deletions**
-
-The relatively small diff was intentional: Phase 2 was primarily an **integration and correction phase**, not a large architectural rewrite.
-
-### Verification snapshot
-
-| Metric | Result |
-|---|---:|
-| Phase-specific tests | **19 passed** |
-| Full backend verification | **40 passed** |
-| Failures | **0** |
-| Errors | **0** |
-| Warnings | **1** |
-| Git commit | **Successful** |
-| Git push | **Successful** |
-| PR #116 | **Merged** |
-| CI/CD integration | **Passed** |
-| Final branch state | **Integrated into `main`** |
-
-### Diagnostic lesson
-
-An early test collection run reported:
-
-```text
-ModuleNotFoundError: No module named 'backend'
-```
-
-The environment was investigated instead of treating the message as immediate proof of an application defect. Imports for `backend`, `cli_tools`, and `backend.app.main` were independently checked, after which the tests were executed with the appropriate project import context.
-
-The final verification established that the earlier failure was primarily an **execution/import-path problem during test collection**, not evidence that the backend package was absent.
-
-### Remaining Phase 2 warning
-
-One non-blocking dependency warning remains around the Starlette/httpx test-client compatibility path. It did not fail the test suite and is classified as a dependency-hygiene item for an appropriate future maintenance scope rather than a reason to reopen the completed phase.
+> Phase 2 is frozen as a completed integration boundary. Future work belongs in the next phase.
 
 ---
 
 # 🔀 Branch & PR Governance
 
-`main` is the **stable, authoritative integration branch**.
-
-Completed phases use temporary development branches:
-
 ```text
 main
  │
- ├── phase-3-<purpose>
- │      │
- │      ├── Implement
- │      ├── Diagnose
- │      ├── Test
- │      ├── Fix
- │      ├── Re-test
- │      ├── Document
- │      └── Verify
- │
- │              ↓
- │        Pull Request → main
- │              ↓
- │        CI/CD + CodeQL
- │              ↓
- │           Review
- │              ↓
- │            Merge
- │              ↓
- │      Delete temporary branch
- │              ↓
- └──────── Updated main
+ └── phase-<purpose>
+        ↓
+     Implement
+        ↓
+   Test / Diagnose / Fix
+        ↓
+      Verify
+        ↓
+   Pull Request → main
+        ↓
+   CI/CD + CodeQL
+        ↓
+      Review
+        ↓
+      Merge
+        ↓
+  Retire temporary branch
 ```
 
-### Phase completion gate
-
-A phase is considered complete only when applicable requirements have passed:
-
-1. Implementation complete
-2. Local tests executed
-3. Failures diagnosed
-4. Required fixes implemented
-5. Tests re-executed
-6. Verification documented
-7. Changes committed
-8. Branch pushed
-9. Pull request opened against `main`
-10. Required CI/CD checks pass
-11. Security/code scanning reviewed where applicable
-12. Pull request merged
-13. Temporary phase branch retired when no longer required
-14. Integrated state on `main` becomes authoritative
-
-### Historical branches
-
-Older branches may remain for historical or experimental reasons. They are **not automatically part of the active development model**. A legacy branch should be classified as Active, Experimental, Historical, or Obsolete before it is reused or removed.
+`main` is the stable integration branch. Phase branches are temporary development boundaries and should not contain unrelated work.
 
 ---
 
 # ⚙️ CI/CD & Security
 
-The repository uses GitHub Actions as an independent verification boundary.
-
 ```text
-Local implementation
-       ↓
 Local tests
-       ↓
-Commit + push
-       ↓
-Pull Request → main
-       ↓
-┌──────────────────────────┐
-│ GitHub Actions            │
-│ • dependency preflight    │
-│ • pip check               │
-│ • flake8                  │
-│ • pytest                  │
-│ • CodeQL                  │
-└────────────┬─────────────┘
+    ↓
+Commit + Push
+    ↓
+Pull Request
+    ↓
+GitHub Actions
+ ┌───────────────────────┐
+ │ pytest                │
+ │ flake8                │
+ │ pip check             │
+ │ CodeQL                │
+ │ Dependency checks     │
+ └───────────┬───────────┘
              ↓
-       Review / merge
+        Review → Merge
              ↓
             main
 ```
 
-### Current automation
-
-- **Python package workflow** installs dependencies, runs `pip check`, performs flake8 checks, and executes `pytest --import-mode=importlib backend/ tests/`.
-- **CodeQL Advanced** analyzes Python and GitHub Actions workflows and runs on the configured branch events plus a weekly scheduled scan.
-- **Dependabot** provides automated dependency-update management for configured ecosystems.
-
-> Local success and CI success are intentionally treated as separate evidence boundaries.
+Local success and CI success are treated as **separate evidence boundaries**.
 
 ---
 
 # 📊 Engineering Status
 
 ```text
-Phase 1  ████████████████████  COMPLETE / VERIFIED / MERGED
-Phase 2  ████████████████████  COMPLETE / VERIFIED / MERGED
-Phase 3  ░░░░░░░░░░░░░░░░░░░░  NEXT
-Phase 4  ░░░░░░░░░░░░░░░░░░░░  PLANNED
-Phase 5  ░░░░░░░░░░░░░░░░░░░░  PLANNED
+PHASE 1  ████████████████████  COMPLETE / VERIFIED / MERGED
+PHASE 2  ████████████████████  COMPLETE / VERIFIED / MERGED
+PHASE 3  ░░░░░░░░░░░░░░░░░░░░  NEXT
+PHASE 4  ░░░░░░░░░░░░░░░░░░░░  PLANNED
+PHASE 5  ░░░░░░░░░░░░░░░░░░░░  PLANNED
 ```
-
-### Current engineering posture
 
 | Area | Status |
 |---|---|
 | Repository foundation | 🟢 Verified |
 | Core application integration | 🟢 Verified |
-| Provider/factory integration | 🟢 Verified in Phase 2 scope |
-| Provenance verification | 🟢 Tested in Phase 2 scope |
-| Backend automated verification | 🟢 40 passed / 0 failed |
-| CI/CD | 🟢 Integrated verification boundary |
+| Provider/factory | 🟢 Verified in Phase 2 scope |
+| Provenance | 🟢 Tested in Phase 2 scope |
+| Backend tests | 🟢 **40 passed / 0 failed** |
+| CI/CD | 🟢 Integrated boundary |
 | CodeQL | 🟢 Configured |
-| Dependency automation | 🟢 Configured |
 | Release readiness | 🟡 In progress |
 | Phase 3 | ⚪ Not started |
 
 ---
 
-# 🚦 Release Readiness
+# 🚦 Release Gate
 
-Codemaster-AI will **not** be declared release-ready merely because code exists or tests pass.
+Release readiness requires evidence across:
 
-The release gate spans:
+**Implementation · Tests · Runtime · LLM/providers · RAG · Dependencies · Security · CI/CD · Documentation · Metadata · Git history · Feature verification**
 
-```mermaid
-flowchart TD
-    SRC[Source implementation] --> TEST[Automated testing]
-    TEST --> RUN[Runtime verification]
-    RUN --> LLM[LLM / provider verification]
-    LLM --> RAG[RAG / retrieval verification]
-    RAG --> DEP[Dependency integrity]
-    DEP --> SEC[Security]
-    SEC --> CI[CI/CD]
-    CI --> DOC[Documentation]
-    DOC --> META[Release metadata]
-    META --> GIT[Git history / tags]
-    GIT --> EXEC[Feature-by-feature executable verification]
-    EXEC --> READY{Release-ready?}
-```
-
-Before a final release declaration, the project should have evidence across:
-
-- Source implementation
-- Automated tests
-- Runtime behavior
-- LLM/provider behavior
-- Retrieval/RAG behavior
-- Dependency integrity
-- Security
-- CI/CD
-- Documentation
-- Version/release metadata
-- Git history and tags
-- Feature-by-feature executable verification
-
-**Current status: development and verification continue. Phase 1 and Phase 2 are complete; final release readiness remains a broader project-level gate.**
+**Current position:** Phase 1 and Phase 2 are complete; project-level release verification continues.
 
 ---
 
 # 🗺️ Roadmap
 
-| Phase | Engineering focus | Status |
+| Phase | Focus | Status |
 |---|---|---|
-| **Phase 1** | Foundation, repository hygiene, environment and test baseline | ✅ Complete |
-| **Phase 2** | Core implementation and integration | ✅ Complete |
-| **Phase 3** | Next architecture / reliability scope | ⏳ Planned |
-| **Phase 4** | Next architecture / release scope | ⏳ Planned |
-| **Phase 5** | Final integration and release readiness | ⏳ Planned |
-
-Future phases will be documented using the same evidence-based structure.
+| **1** | Foundation | ✅ Complete |
+| **2** | Core implementation + integration | ✅ Complete |
+| **3** | Architecture / reliability | ⏳ Planned |
+| **4** | Release engineering | ⏳ Planned |
+| **5** | Final integration + release readiness | ⏳ Planned |
 
 ---
 
 # 🚀 Quickstart
 
-## Prerequisites
+### Prerequisites
 
-- Python **3.12+** for the primary project runtime target
-- [Ollama](https://ollama.com/) installed and running for local inference
+- Python **3.12+**
+- [Ollama](https://ollama.com/) for local inference
 - Git
-- Optional: Docker Desktop
+- Optional: Docker
 
-## Clone
+### Install
 
 ```bash
 git clone https://github.com/sharfuddin18/Codemaster-Ai.git
 cd Codemaster-Ai
+
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install -r backend/requirements.txt
 ```
 
-## Environment
+Windows PowerShell:
 
-Create your local environment from the example configuration:
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+### Configure
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-Configure the provider/model settings appropriate for your environment. For a local Ollama path, the architecture expects settings equivalent to:
+For local Ollama inference:
 
 ```text
 LLM_PROVIDER=ollama
@@ -695,122 +426,37 @@ OLLAMA_ENABLED=true
 OLLAMA_BASE_URL=http://localhost:11434
 ```
 
-> Keep local credentials and machine-specific state out of Git. `backend/.env.example` is the repository-safe configuration reference.
-
-## Install
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-
-python -m pip install -r requirements.txt
-python -m pip install -r backend/requirements.txt
-```
-
-On Windows PowerShell, activate the environment with:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-## Run the backend
+### Run
 
 ```bash
 cd backend
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Interactive API documentation is then available at:
+API docs: `http://localhost:8000/docs`
 
-```text
-http://localhost:8000/docs
-```
-
----
-
-# 💻 Usage Surfaces
-
-## TUI
+### TUI
 
 ```bash
 python run_tui.py
-```
-
-## CLI
-
-The repository contains CLI helpers under `cli_tools/` for terminal-oriented coding workflows.
-
-## REST API
-
-Example generation request:
-
-```bash
-curl -X POST http://localhost:8000/generate-code \
-  -H "Content-Type: application/json" \
-  -d '{"prompt":"Write an async Python function to calculate Fibonacci numbers with memoization"}'
-```
-
----
-
-# 🔌 MCP Integration
-
-MCP endpoints provide a structured integration surface for external tools.
-
-### Capabilities
-
-```bash
-curl http://localhost:8000/mcp/capabilities
-```
-
-### Retrieve project context
-
-```bash
-curl -X POST http://localhost:8000/mcp/retrieve \
-  -H "Content-Type: application/json" \
-  -d '{"query":"database connection","top_k":5}'
-```
-
-### Generate code
-
-```bash
-curl -X POST http://localhost:8000/mcp/generate \
-  -H "Content-Type: application/json" \
-  -d '{"prompt":"Create a helper to open a DB connection","language":"python"}'
 ```
 
 ---
 
 # 🧪 Testing
 
-The repository separates local testing from CI verification.
-
-### Project tests
-
 ```bash
+# Project tests
 PYTHONPATH=.:backend:backend/app pytest -v
-```
 
-### CI-equivalent test invocation
-
-```bash
+# CI-equivalent invocation
 PYTHONPATH=.:backend pytest --import-mode=importlib backend/ tests/
-```
 
-### Benchmark harness
-
-```bash
+# Benchmark
 python run_benchmark.py
 ```
 
-### Phase 2 verification record
-
-```text
-19 phase-specific tests passed
-40 full backend tests passed
-0 failures
-0 errors
-1 non-blocking warning
-```
+**Phase 2 record:** `19` phase-specific tests passed · `40` full backend tests passed · `0` failures · `0` errors · `1` warning.
 
 ---
 
@@ -824,108 +470,81 @@ Codemaster-Ai/
 │   │   ├── llm/
 │   │   ├── routes/
 │   │   ├── services/
-│   │   ├── utils/
 │   │   └── main.py
-│   ├── database/
 │   ├── tests/
 │   ├── model_orchestrator.py
 │   ├── provider_manager.py
-│   ├── session_memory.py
 │   └── tui_app.py
 ├── cli_tools/
 ├── tests/
 ├── data/
-├── .github/
-│   ├── workflows/
-│   └── dependabot.yml
+├── .github/workflows/
 ├── ARCHITECTURE.md
 ├── CONTRIBUTING.md
 ├── SECURITY.md
 ├── run_benchmark.py
 ├── run_tui.py
-├── requirements.txt
 └── README.md
 ```
 
-For deeper architectural details, see [`ARCHITECTURE.md`](ARCHITECTURE.md).
-
 ---
 
-# 🛡️ Engineering & Security Principles
+# 🛡️ Engineering Principles
 
-1. **Local-first where configured** — Ollama provides a local inference path; alternative providers are explicit configuration choices.
-2. **Terminal-first** — the developer workflow stays close to the terminal and repository.
-3. **Context before generation** — retrieval is part of the coding workflow, not an afterthought.
-4. **Providers are abstracted** — application logic should not be hard-wired to one inference backend.
-5. **Generated changes remain reviewable** — patch-based workflows preserve developer control.
-6. **Provenance matters** — generated output can be inspected against available source/context information.
-7. **Tests are evidence** — test results are recorded instead of inferred from implementation.
-8. **CI is an independent boundary** — local success does not replace repository automation.
-9. **Secrets stay local** — local environment files and credentials must never be committed.
-10. **Documentation follows reality** — architectural claims should be updated when implementation changes.
+1. 🔒 **Local-first where configured** — Ollama provides the local inference path.
+2. 🧠 **Context before generation** — retrieval is part of the workflow.
+3. 🧩 **Provider abstraction** — application logic stays decoupled from providers.
+4. 🩹 **Reviewable changes** — generated patches remain inspectable.
+5. 📚 **Provenance matters** — generated output can be checked against context.
+6. 🧪 **Tests are evidence** — results are recorded, not assumed.
+7. ⚙️ **CI is independent evidence** — local success does not replace CI.
+8. 🔐 **Secrets stay local** — credentials and `.env` state stay out of Git.
+9. 📖 **Documentation follows reality** — claims change with implementation.
 
 ---
 
 # 🤝 Contributing
 
-Contributions and engineering feedback are welcome.
-
-Before making changes:
-
 1. Read [`CONTRIBUTING.md`](CONTRIBUTING.md).
-2. Work from a dedicated branch.
-3. Keep the scope focused.
-4. Run relevant tests locally.
-5. Diagnose and fix failures before opening the PR.
-6. Document meaningful architectural or behavior changes.
-7. Open the PR against `main`.
-8. Treat CI/CD and security checks as integration gates.
+2. Create a focused development branch.
+3. Implement → Test → Diagnose → Fix → Re-test → Verify.
+4. Document meaningful changes.
+5. Open a PR against `main`.
+6. Pass CI/security checks before merge.
 
-For phase work, follow the project lifecycle:
+**Engineering lifecycle:**
 
-**Plan → Implement → Diagnose → Test → Fix → Re-test → Verify → Document → Commit → Push → PR → CI → Review → Merge**
+`Plan → Implement → Diagnose → Test → Fix → Re-test → Verify → Document → Commit → Push → PR → CI → Review → Merge`
 
 ---
 
-# 📚 Engineering Documentation
+# 📚 Documentation
 
 | Document | Purpose |
 |---|---|
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Detailed system architecture and component boundaries |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Development and contribution workflow |
-| [`SECURITY.md`](SECURITY.md) | Security guidance and reporting |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | System architecture and component boundaries |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Development workflow |
+| [`SECURITY.md`](SECURITY.md) | Security guidance |
 | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Community standards |
 | [`LICENSE.txt`](LICENSE.txt) | MIT license |
 
 ---
 
-# 📜 Project Philosophy
-
-> **Codemaster-AI does not consider documentation to be proof of implementation. Implementation must be backed by executable evidence.**
-
-And equally:
-
-> **A passing test is evidence of the tested behavior — not automatic proof of complete system correctness.**
-
-The development record therefore preserves not only what was built, but also **why it was built, how it was diagnosed, what was tested, what was verified, what remains, and where the integrated project currently stands**.
-
----
-
-## 🏁 Current Position
+# 🏁 Current Position
 
 ```text
-PHASE 1  ████████████████████  COMPLETE / VERIFIED / MERGED
-PHASE 2  ████████████████████  COMPLETE / VERIFIED / MERGED
+PHASE 1  ████████████████████  COMPLETE
+PHASE 2  ████████████████████  COMPLETE
 PHASE 3  ░░░░░░░░░░░░░░░░░░░░  NEXT
 PHASE 4  ░░░░░░░░░░░░░░░░░░░░  PLANNED
 PHASE 5  ░░░░░░░░░░░░░░░░░░░░  PLANNED
 ```
 
-**Codemaster-AI is now at the end of Phase 2 and beginning the next engineering verification cycle from a clean, integrated `main` baseline.**
+> **Evidence before claims. Engineering before marketing.**
 
----
+### Built by Sharfuddin Ahmed
 
-<p align="center">
-  <strong>Built with ☕, Python, local AI, disciplined engineering, and persistence.</strong><br>
-  <sub>Codemaster-AI · Phase-based engineering · Evidence before claims</sub>
-</p>
+**AI Vibe Coder · Systems Architect · Creator of Codemaster-AI**  
+GitHub: [@sharfuddin18](https://github.com/sharfuddin18)
+
+**Codemaster-AI · Phase-based engineering · Local AI · Evidence-driven development** ☕🚀
