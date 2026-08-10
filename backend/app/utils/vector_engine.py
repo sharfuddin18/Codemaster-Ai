@@ -47,12 +47,14 @@ class CodeVectorEngine:
         source_dir: Optional[str | Path] = None,
         config: Optional[IndexConfig] = None,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+        build_on_init: bool = True,
     ):
         self.config = config or IndexConfig(source_dir=source_dir)
         if source_dir is not None and self.config.source_dir is None:
             self.config.source_dir = source_dir
 
-        self.source_dir = self._resolve_source_dir(self.config.source_dir or source_dir)
+        configured_source = self.config.source_dir or source_dir
+        self.source_dir = self._resolve_source_dir(configured_source) if configured_source is not None else None
         self.model_name = model_name
         self.model = None
         self.index = None
@@ -66,12 +68,12 @@ class CodeVectorEngine:
             else None
         )
 
-        if self.source_dir is not None:
+        if build_on_init and self.source_dir is not None:
             self.build_index(self.source_dir)
 
     def _resolve_source_dir(self, source_dir: Optional[str | Path]) -> Optional[Path]:
         if source_dir is None:
-            return Path.cwd().resolve()
+            return None
         return Path(source_dir).resolve()
 
     def _ensure_model(self) -> None:
@@ -191,13 +193,11 @@ class CodeVectorEngine:
                 if self.config.source_dir is None:
                     self.config.source_dir = self.source_dir
             elif self.source_dir is None:
-                self.source_dir = Path.cwd().resolve()
-
-            if self.source_dir is None:
                 self._loaded = False
                 self._state = self.FAILED
                 return
-            if not self.source_dir.exists():
+
+            if self.source_dir is None or not self.source_dir.exists():
                 self._loaded = False
                 self._state = self.FAILED
                 raise FileNotFoundError(f"Index source directory does not exist: {self.source_dir}")
