@@ -77,8 +77,11 @@ def build_context_prompt(query: str) -> tuple[str, dict[int, dict[str, str]]]:
     try:
         results = get_hybrid_retriever().search(query, top_k=3, alpha=0.5, min_score=0.0)
     except Exception as exc:
-        logger.warning("Hybrid retrieval failed: %s", exc)
-        return "", {}
+        logger.exception("Hybrid retrieval failed")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Repository retrieval unavailable",
+        ) from exc
 
     if not results:
         return "", {}
@@ -98,8 +101,11 @@ def build_context_results(query: str, top_k: int = 3) -> list[dict[str, Any]]:
     try:
         results = get_hybrid_retriever().search(query, top_k=top_k)
     except Exception as exc:
-        logger.warning("Hybrid retrieval failed: %s", exc)
-        return []
+        logger.exception("Hybrid retrieval failed")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Repository retrieval unavailable",
+        ) from exc
     return [_parse_retrieval_doc(result) for result in results]
 
 
