@@ -2,6 +2,7 @@ import subprocess
 
 import pytest
 
+from backend.app.agents.code_agent import process_code_request
 from backend.app.services.hybrid_retriever import HybridRetriever
 from backend.app.services.patch_generator import (
     PatchApplicationError,
@@ -80,3 +81,16 @@ def test_patch_failures_are_explicit(tmp_path):
 def test_patch_path_traversal_is_rejected():
     with pytest.raises(ValueError):
         generate_unified_patch("../outside.py", "a\n", "b\n")
+
+
+def test_agent_routes_local_context_and_skips_general_requests():
+    class FakeVectorService:
+        def retrieve(self, prompt):
+            return [prompt]
+
+    service = FakeVectorService()
+    assert process_code_request("check the internal architecture", service) == ["check the internal architecture"]
+    assert process_code_request("create a python script", service) is None
+    assert process_code_request("explain recursion", service) is None
+    with pytest.raises(ValueError):
+        process_code_request("", service)
