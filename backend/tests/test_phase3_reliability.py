@@ -9,17 +9,6 @@ from backend.app.utils import vector_engine
 from backend.app.utils.vector_engine import CodeVectorEngine, IndexConfig
 
 
-class StubDense:
-    def __init__(self, scores):
-        self.scores = scores
-
-    def index_documents(self, documents):
-        self.documents = documents
-
-    def query(self, query, top_k=5):
-        return self.scores[:top_k]
-
-
 def test_hybrid_retrieval_handles_empty_queries_and_top_k():
     retriever = HybridRetriever()
     retriever.index_documents([{"id": "a", "content": "fetch_user"}])
@@ -47,6 +36,8 @@ def test_vector_engine_persist_reload_and_invalid_state(tmp_path: Path, monkeypa
     source = tmp_path / "src"
     source.mkdir()
     (source / "service.py").write_text("def fetch_user(user_id):\n    return user_id\n", encoding="utf-8")
+    empty_source = tmp_path / "empty"
+    empty_source.mkdir()
     cache_db = tmp_path / "cache.db"
     persist = tmp_path / "vector_index"
 
@@ -56,12 +47,12 @@ def test_vector_engine_persist_reload_and_invalid_state(tmp_path: Path, monkeypa
     assert engine.search_context("fetch_user", top_k=1)
     engine.persist()
 
-    reloaded = CodeVectorEngine(source_dir=None, config=IndexConfig())
+    reloaded = CodeVectorEngine(source_dir=empty_source, config=IndexConfig(source_dir=empty_source))
     reloaded.load(persist)
     assert reloaded.chunks == engine.chunks
     assert reloaded.search_context("fetch_user", top_k=1)
 
-    (persist.with_suffix(".json")).write_text('{"chunks": []}', encoding="utf-8")
+    persist.with_suffix(".json").write_text('{"chunks": []}', encoding="utf-8")
     with pytest.raises(ValueError):
         reloaded.load(persist)
     assert reloaded._state == CodeVectorEngine.FAILED
