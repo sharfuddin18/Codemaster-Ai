@@ -43,16 +43,18 @@ def test_hybrid_retrieval_alpha_changes_ranking_between_dense_and_bm25():
             return [
                 {"id": "semantic", "score": 1.0},
                 {"id": "lexical", "score": 0.0},
+                {"id": "other", "score": 0.0},
             ][:top_k]
 
     retriever = HybridRetriever(dense_vector_engine=ConflictingDense())
     retriever.index_documents([
         {"id": "lexical", "content": "exact_identifier"},
         {"id": "semantic", "content": "conceptual discussion"},
+        {"id": "other", "content": "unrelated material"},
     ])
 
-    lexical_first = retriever.search("exact_identifier", top_k=2, alpha=0.0)
-    dense_first = retriever.search("exact_identifier", top_k=2, alpha=1.0)
+    lexical_first = retriever.search("exact_identifier", top_k=3, alpha=0.0)
+    dense_first = retriever.search("exact_identifier", top_k=3, alpha=1.0)
 
     assert lexical_first[0]["id"] == "lexical"
     assert dense_first[0]["id"] == "semantic"
