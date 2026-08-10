@@ -108,3 +108,15 @@ def test_mcp_runtime_retrieve_and_validation(monkeypatch):
 
         invalid = client.post("/mcp/retrieve", json={"query": "", "top_k": 1})
         assert invalid.status_code == 422
+
+
+def test_mcp_retrieval_failure_is_controlled(monkeypatch):
+    def failing_retriever():
+        raise RuntimeError("index unavailable")
+
+    monkeypatch.setattr("backend.app.routes.mcp.get_hybrid_retriever", failing_retriever)
+    app.state.activated = True
+    with TestClient(app) as client:
+        response = client.post("/mcp/retrieve", json={"query": "fetch_user"})
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Repository retrieval unavailable"
