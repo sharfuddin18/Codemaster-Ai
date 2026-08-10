@@ -34,6 +34,32 @@ def test_hybrid_retrieval_deduplicates_ids_and_validates_parameters():
         retriever.search("alpha", min_score=1.1)
 
 
+def test_hybrid_retrieval_alpha_changes_ranking_between_dense_and_bm25():
+    class ConflictingDense:
+        def index_documents(self, documents):
+            self.documents = documents
+
+        def query(self, query, top_k=5):
+            return [
+                {"id": "semantic", "score": 1.0},
+                {"id": "lexical", "score": 0.0},
+            ][:top_k]
+
+    retriever = HybridRetriever(dense_vector_engine=ConflictingDense())
+    retriever.index_documents([
+        {"id": "lexical", "content": "exact_identifier"},
+        {"id": "semantic", "content": "conceptual discussion"},
+    ])
+
+    lexical_first = retriever.search("exact_identifier", top_k=2, alpha=0.0)
+    dense_first = retriever.search("exact_identifier", top_k=2, alpha=1.0)
+
+    assert lexical_first[0]["id"] == "lexical"
+    assert dense_first[0]["id"] == "semantic"
+    assert lexical_first[0]["bm25_score"] > lexical_first[1]["bm25_score"]
+    assert dense_first[0]["dense_score"] > dense_first[1]["dense_score"]
+
+
 def test_vector_engine_persist_reload_and_invalid_state(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(vector_engine, "SentenceTransformer", None)
     source = tmp_path / "src"
@@ -57,6 +83,23 @@ def test_vector_engine_persist_reload_and_invalid_state(tmp_path: Path, monkeypa
     with pytest.raises(ValueError):
         reloaded.load(persist)
     assert reloaded._state == CodeVectorEngine.FAILED
+
+
+def test_vector_engine_fails_build_when_file_indexing_fails(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(vector_engine, "SentenceTransformer", None)
+    source = tmp_path / "src"
+    source.mkdir()
+    (source / "service.py").write_text("def fetch_user():\n    return True\n", encoding="utf-8")
+
+    engine = CodeVectorEngine(source_dir=source, build_on_init=False)
+
+    def fail_file_index(_path):
+        raise ValueError("embedding failure")
+
+    monkeypatch.setattr(engine, "_build_file_chunks", fail_file_index)
+    with pytest.raises(RuntimeError, match="Vector indexing failed"):
+        engine.build_index(source)
+    assert engine._state == CodeVectorEngine.FAILED
 
 
 def test_incremental_cache_reuses_unchanged_file_and_invalidates_deleted_file(tmp_path: Path):
