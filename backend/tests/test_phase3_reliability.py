@@ -7,6 +7,7 @@ from backend.app.llm.factory import LLMFactory
 from backend.app.main import app
 from backend.app.services.cache_service import VectorCacheService
 from backend.app.services.hybrid_retriever import HybridRetriever
+from backend.app.services.patch_generator import PatchApplicationError, generate_unified_patch, validate_unified_patch
 from backend.app.utils import vector_engine
 from backend.app.utils.vector_engine import CodeVectorEngine, IndexConfig
 
@@ -120,3 +121,32 @@ def test_mcp_retrieval_failure_is_controlled(monkeypatch):
         response = client.post("/mcp/retrieve", json={"query": "fetch_user"})
         assert response.status_code == 503
         assert response.json()["detail"] == "Repository retrieval unavailable"
+
+
+def test_generation_retrieval_failure_is_controlled(monkeypatch):
+    class FailingRetriever:
+        def search(self, *args, **kwargs):
+            raise RuntimeError("index unavailable")
+
+    monkeypatch.setattr("backend.app.routes.generation.get_hybrid_retriever", lambda: FailingRetriever())
+    app.state.activated = True
+    with TestClient(app) as client:
+        response = client.post("/generate-code", json={"prompt": "find fetch_user", "language": "python"})\        
+        assert response.status_code == 503
+        assert response.json()["detail"] == "Repository retrieval unavailable"
+
+
+def test_patch_generation_rejects_traversal_and_empty_patch():
+    with pytest.raises(ValueError):
+        generate_unified_patch("../outside.py", "old", "new")
+
+    with pytest.raises(PatchApplicationError, match="Patch is empty"):
+        validate_unified_patch(".", "")
+
+
+def test_patch_validation_rejects_unsafe_header(tmp_path: Path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    unsafe_patch = "--- a/../../outside.py\n+++ b/../../outside.py\n@@ -1 +1 @@\n-old\n+new\n"
+    with pytest.raises(PatchApplicationError):
+        validate_unified_patch(repo, unsafe_patch)
