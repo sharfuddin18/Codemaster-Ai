@@ -1,5 +1,5 @@
-from backend.app.agents.prompts import CODEMASTER_ENHANCED_SYSTEM_PROMPT
-from backend.app.services.router_service import classify_query_intent
+from .prompts import CODEMASTER_ENHANCED_SYSTEM_PROMPT
+from ..services.router_service import classify_query_intent
 SYSTEM_PROMPT = """You are an expert AI programmer. 
 CRITICAL RULES:
 1. The provided repository context is strictly for style and API reference. 

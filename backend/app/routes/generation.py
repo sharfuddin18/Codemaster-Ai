@@ -6,12 +6,12 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from app.config import settings
-from app.models import CodeRequest, CodeResponse, FixRequest, Provenance, Source
-from app.llm.factory import LLMFactory
-from app.services.ollama_service import select_best_model
-from app.utils.vector_engine import CodeVectorEngine
-from app.services.response_verifier import verify_response
+from ..config import settings
+from ..models import CodeRequest, CodeResponse, FixRequest, Provenance, Source
+from ..llm.factory import LLMFactory
+from ..services.ollama_service import select_best_model
+from ..utils.vector_engine import CodeVectorEngine
+from ..services.response_verifier import verify_response
 from database.db import is_activated
 
 logger = logging.getLogger("codemaster-ai")

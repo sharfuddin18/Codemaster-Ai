@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict
 
-from app.llm.providers.base import BaseLLMProvider
+from .base import BaseLLMProvider
 
 
 class OpenAIProvider(BaseLLMProvider):

@@ -3,7 +3,7 @@ from typing import Optional, Any, Dict
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.config import settings
+from .config import settings
 
 
 class Source(BaseModel):

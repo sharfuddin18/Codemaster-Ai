@@ -1,7 +1,7 @@
 import logging
 from typing import List, Dict, Any, Optional
 
-from app.utils.vector_engine import CodeVectorEngine
+from ..utils.vector_engine import CodeVectorEngine
 import numpy as np
 
 logger = logging.getLogger("codemaster-ai")

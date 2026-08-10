@@ -5,12 +5,12 @@ import uuid
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
-from app.routes.control import router as control_router
-from app.routes.generation import router as generation_router
-from app.routes.health import router as health_router
-from app.routes.mcp import router as mcp_router
-from app.services.ollama_service import close_ollama_client
+from .config import settings
+from .routes.control import router as control_router
+from .routes.generation import router as generation_router
+from .routes.health import router as health_router
+from .routes.mcp import router as mcp_router
+from .services.ollama_service import close_ollama_client
 from database.db import get_state
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
