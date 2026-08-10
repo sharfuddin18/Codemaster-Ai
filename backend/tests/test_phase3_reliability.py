@@ -5,7 +5,6 @@ from fastapi.testclient import TestClient
 
 from backend.app.llm.factory import LLMFactory
 from backend.app.main import app
-from backend.app.services import mcp_service  # type: ignore
 from backend.app.services.cache_service import VectorCacheService
 from backend.app.services.hybrid_retriever import HybridRetriever
 from backend.app.utils import vector_engine
