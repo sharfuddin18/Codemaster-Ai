@@ -215,8 +215,10 @@ class CodeVectorEngine:
                 try:
                     contexts, embeddings = self._build_file_chunks(file_path)
                 except Exception as exc:
-                    logger.warning("Skipping %s due to read/index error: %s", file_path, exc)
-                    continue
+                    logger.exception("Vector indexing failed for %s", file_path)
+                    self._loaded = False
+                    self._state = self.FAILED
+                    raise RuntimeError(f"Vector indexing failed for {file_path}") from exc
                 self.chunks.extend(contexts)
                 if embeddings.size:
                     embedding_blocks.append(embeddings)
@@ -248,7 +250,14 @@ class CodeVectorEngine:
         metadata_path = target.with_suffix(".json")
         faiss.write_index(self.index, str(index_path))
         metadata_path.write_text(
-            json.dumps({"model_name": self.model_name, "chunks": self.chunks}, ensure_ascii=False),
+            json.dumps(
+                {
+                    "model_name": self.model_name,
+                    "embedding_dimension": self._embedding_dimension,
+                    "chunks": self.chunks,
+                },
+                ensure_ascii=False,
+            ),
             encoding="utf-8",
         )
         return index_path
@@ -263,11 +272,16 @@ class CodeVectorEngine:
         try:
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
             chunks = metadata.get("chunks")
+            dimension = metadata.get("embedding_dimension")
             if not isinstance(chunks, list) or not all(isinstance(chunk, str) for chunk in chunks):
                 raise ValueError("Persisted vector metadata is invalid")
+            if not isinstance(dimension, int) or dimension < 1:
+                raise ValueError("Persisted vector embedding dimension is invalid")
             index = faiss.read_index(str(index_path))
             if index.ntotal != len(chunks):
                 raise ValueError("Persisted vector index and metadata have different sizes")
+            if index.d != dimension:
+                raise ValueError("Persisted vector index and metadata have different dimensions")
             self.index = index
             self.chunks = chunks
             self._embedding_dimension = index.d
