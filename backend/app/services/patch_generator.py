@@ -11,6 +11,21 @@ class PatchApplicationError(RuntimeError):
     """Raised when a patch cannot be validated or applied."""
 
 
+def _validate_patch_paths(patch_text: str) -> None:
+    """Reject absolute or parent-traversal paths before invoking git."""
+    for line in patch_text.splitlines():
+        if not (line.startswith("--- ") or line.startswith("+++ ")):
+            continue
+        path = line[4:].split("\t", 1)[0].strip()
+        if path == "/dev/null":
+            continue
+        if path.startswith(("/", "\\")):
+            raise PatchApplicationError("Patch contains an absolute path")
+        normalized = path.replace("\\", "/")
+        if ".." in Path(normalized).parts:
+            raise PatchApplicationError("Patch contains a parent-traversal path")
+
+
 def generate_unified_patch(file_path: str, original_content: str, modified_content: str) -> Dict[str, Any]:
     """Generate a standard Git unified patch."""
     if not file_path or Path(file_path).is_absolute() or ".." in Path(file_path).parts:
@@ -40,6 +55,7 @@ def validate_unified_patch(repo_root: str | Path, patch_text: str) -> None:
     root = Path(repo_root).resolve()
     if not root.is_dir():
         raise PatchApplicationError(f"Repository root does not exist: {root}")
+    _validate_patch_paths(patch_text)
     try:
         result = subprocess.run(
             ["git", "apply", "--check", "--recount", "--whitespace=error"],
