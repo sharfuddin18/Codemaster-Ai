@@ -57,3 +57,11 @@ yarn-error.log*
 .coverage
 htmlcov/
 .tbls/
+
+# Codemaster-AI local configuration
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Ollama runtime state and generated identity
+data/ollama/
