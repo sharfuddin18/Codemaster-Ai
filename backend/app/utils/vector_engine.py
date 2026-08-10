@@ -90,7 +90,6 @@ class CodeVectorEngine:
         self._ensure_model()
         if self.model == "fallback":
             return self._fallback_embeddings(texts)
-
         try:
             embeddings = self.model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
             return np.asarray(embeddings, dtype="float32")
@@ -116,7 +115,6 @@ class CodeVectorEngine:
     def _iter_source_files(self) -> List[Path]:
         if self.source_dir is None:
             return []
-
         files: List[Path] = []
         excluded = set((self.config.exclude_paths or []) + [".git", "__pycache__", ".venv", "node_modules"])
         for path in sorted(self.source_dir.rglob("*")):
@@ -135,7 +133,6 @@ class CodeVectorEngine:
         raw_lines = [line.rstrip() for line in text.splitlines() if line.strip()]
         if not raw_lines:
             return []
-
         chunks: List[str] = []
         start = 0
         while start < len(raw_lines):
@@ -156,7 +153,7 @@ class CodeVectorEngine:
             return [], np.empty((0, self._embedding_dimension or 128), dtype="float32")
 
         if self.cache is not None:
-            file_path_str = str(file_path)
+            file_path_str = str(file_path.resolve())
             file_hash = self.cache.compute_file_hash(file_path_str)
             if self.cache.is_file_unchanged(file_path_str, file_hash):
                 cached = self.cache.get_cached_embeddings(file_path_str)
@@ -206,6 +203,8 @@ class CodeVectorEngine:
                 raise FileNotFoundError(f"Index source directory does not exist: {self.source_dir}")
 
             files = self._iter_source_files()
+            if self.cache is not None:
+                self.cache.remove_missing_files(str(path.resolve()) for path in files)
             if not files:
                 self._loaded = True
                 self._state = self.READY
@@ -288,7 +287,6 @@ class CodeVectorEngine:
             return []
         if not isinstance(top_k, int) or top_k < 1:
             return []
-
         query_embedding = self._encode_texts([query])[0:1]
         _, indices = self.index.search(query_embedding.astype("float32"), min(top_k, len(self.chunks)))
         return [self.chunks[int(idx)] for idx in indices[0] if idx >= 0]
