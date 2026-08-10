@@ -149,31 +149,52 @@ flowchart TD
 
 Dense retrieval captures semantic similarity; BM25 helps with exact identifiers, symbols, configuration keys, and terminology.
 
+Phase 3 hardened and regression-tested the hybrid path so dense and BM25 signals both participate in ranking rather than merely existing as separate retrieval functions. Retrieval validation also covers top-k handling, empty/no-result behavior, metadata/provenance, and controlled retrieval failures.
+
 ### ⚡ Incremental indexing
 
 ```text
-Repository → Traverse → Hash/state check
-                         ↓
-                ┌────────┴────────┐
-              unchanged        changed
-                  ↓                ↓
-                 skip         embed/update
-                  └────────┬───────┘
-                           ↓
-                    Vector / cache state
+File
+ ↓
+Hash
+ ↓
+Previous State
+ ↓
+Unchanged → Reuse / Skip
+Changed   → Reprocess
+Deleted   → Invalidate
+New       → Process
 ```
+
+Phase 3 verified unchanged-file reuse, changed/deleted-file invalidation, cache persistence/reload, and index/cache consistency to prevent stale repository context.
+
+### 🗃️ Vector persistence and failure state
+
+Phase 3 verified vector-index creation, embedding insertion, similarity search, FAISS persistence/reload, embedding-dimension metadata validation, corrupted/incompatible persistence handling, rebuild behavior, and explicit vector-index failure state.
+
+A reliability defect was corrected where an indexing failure could be logged/skipped and leave a partially built index appearing usable. The vector engine now surfaces the indexing failure instead of incorrectly reporting a successful `READY` state.
 
 ### 🤖 Agent + provider flow
 
 ```text
-Request → Routing → Retrieval → Agent → Provider
-                                      ↓
-                              Ollama / OpenAI / Fallback
-                                      ↓
-                              Response / Patch
-                                      ↓
-                              Verification
+Request
+   ↓
+Routing
+   ↓
+Retrieval
+   ↓
+Context Assembly
+   ↓
+Agent
+   ↓
+Provider
+   ↓
+Response
 ```
+
+Phase 3 verified routing, retrieval/context handoff, provider selection, response handling, and controlled failure propagation.
+
+Provider behavior includes factory/provider selection, model selection, availability handling, provider exceptions, malformed/empty responses, and disabled-provider behavior. Local versus cloud providers remain distinct. Ollama behavior and unavailable-provider handling are covered by the available test environment; live Ollama model execution remains environment-dependent.
 
 ### 📚 Provenance
 
@@ -187,6 +208,16 @@ flowchart LR
 ```
 
 > **An LLM-generated answer is not considered trustworthy merely because generation succeeded.**
+
+Phase 3 routes generation context through hybrid retrieval and preserves retrieval metadata/provenance for response verification.
+
+### 🧯 Runtime reliability
+
+Applicable FastAPI runtime paths were exercised through the real application/TestClient environment, including application initialization, request validation, successful generation flow, retrieval failure handling, provider failure handling, and response/error behavior. MCP capabilities and the `retrieve`, `generate`, and `fix` routes were exercised through runtime tests with request validation and controlled retrieval/provider failures.
+
+Patch safety coverage includes valid and malformed patches, invalid and unsafe paths, path traversal protection, patch conflicts/failures, successful application, and post-application verification. Unsafe paths are rejected before patch application.
+
+Phase 3 also reviewed relevant retrieval, vector, cache, provider, agent, MCP, FastAPI, and patch paths for silent-failure patterns. Cases where genuine infrastructure failures could otherwise appear successful were corrected; this does not claim that every `except Exception`, `return []`, `return None`, `return ""`, or `pass` instance was removed.
 
 ---
 
@@ -261,8 +292,9 @@ flowchart LR
     PR1 --> P2[Phase 2\nCore Implementation]
     P2 --> PR2[PR #116\nMerged]
     PR2 --> M[main\nAuthoritative Baseline]
-    M --> P3[Phase 3\nNext Scope]
-    P3 --> P4[Phase 4]
+    M --> P3[Phase 3\nReliability / Retrieval / Runtime]
+    P3 --> PR3[PR #117\nMerged]
+    PR3 --> P4[Phase 4]
     P4 --> P5[Phase 5\nRelease Readiness]
 ```
 
@@ -281,6 +313,20 @@ Integrated FastAPI routes, LLM abstraction/factory, Ollama/OpenAI/fallback provi
 **Verification:** `19` phase tests passed · `40` backend tests passed · `0` failures · `0` errors · `1` non-blocking warning.
 
 > Phase 2 is frozen as a completed integration boundary. Future work belongs in the next phase.
+
+### Phase 3 — Reliability, Retrieval & Runtime Verification
+
+**✅ Complete / Verified / Merged** · `a3ada5ebf96e6dc65378e6397fc6e4b38d58e513` · [PR #117](https://github.com/sharfuddin18/Codemaster-Ai/pull/117)
+
+Phase 3 hardened hybrid dense + BM25 retrieval, validated ranking participation and retrieval edge cases, strengthened FAISS persistence/reload and vector-index failure handling, verified incremental cache invalidation and stale-context prevention, exercised provider and agent failure paths, and verified applicable FastAPI, MCP, and patch runtime paths.
+
+Regression coverage includes hybrid ranking, vector indexing failure, persistence/reload, cache invalidation, provider behavior, retrieval failures, MCP/runtime behavior, and patch validation. The BM25 regression fixture was corrected after the initial test exposed that its corpus was too small to create the intended IDF distinction; an unrelated document was added while preserving the assertion.
+
+**Verification:** `57` tests passed; Python 3.10 CI passed; Python 3.11 CI passed; Flake8 passed; CodeQL passed. `pip check` passed in the final verification environment.
+
+**Known non-blocking warning:** Starlette/httpx TestClient deprecation warning under FastAPI `0.141.1`, Starlette `1.6.0`, and httpx `0.28.1`. The warning does not currently fail the test suite, and no speculative dependency upgrade was performed. Live Ollama model execution remains environment-dependent and is not claimed as a live Phase 3 verification result.
+
+> Phase 3 is documented from the verified implementation and test evidence at its final Phase 3 HEAD. No broader reliability or performance guarantee is implied.
 
 ---
 
@@ -344,7 +390,7 @@ Local success and CI success are treated as **separate evidence boundaries**.
 ```text
 PHASE 1  ████████████████████  COMPLETE / VERIFIED / MERGED
 PHASE 2  ████████████████████  COMPLETE / VERIFIED / MERGED
-PHASE 3  ░░░░░░░░░░░░░░░░░░░░  NEXT
+PHASE 3  ████████████████████  COMPLETE / VERIFIED / MERGED
 PHASE 4  ░░░░░░░░░░░░░░░░░░░░  PLANNED
 PHASE 5  ░░░░░░░░░░░░░░░░░░░░  PLANNED
 ```
@@ -353,13 +399,16 @@ PHASE 5  ░░░░░░░░░░░░░░░░░░░░  PLANNED
 |---|---|
 | Repository foundation | 🟢 Verified |
 | Core application integration | 🟢 Verified |
-| Provider/factory | 🟢 Verified in Phase 2 scope |
-| Provenance | 🟢 Tested in Phase 2 scope |
-| Backend tests | 🟢 **40 passed / 0 failed** |
-| CI/CD | 🟢 Integrated boundary |
-| CodeQL | 🟢 Configured |
+| Provider/factory | 🟢 Verified in Phase 3 regression scope |
+| Provenance | 🟢 Tested in Phase 3 scope |
+| Backend tests | 🟢 **57 passed / 0 failed** |
+| Python 3.10 CI | 🟢 Passed |
+| Python 3.11 CI | 🟢 Passed |
+| Flake8 | 🟢 Passed |
+| pip check | 🟢 Passed |
+| CodeQL | 🟢 Passed |
 | Release readiness | 🟡 In progress |
-| Phase 3 | ⚪ Not started |
+| Phase 3 | 🟢 Complete / Verified / Merged |
 
 ---
 
@@ -369,7 +418,7 @@ Release readiness requires evidence across:
 
 **Implementation · Tests · Runtime · LLM/providers · RAG · Dependencies · Security · CI/CD · Documentation · Metadata · Git history · Feature verification**
 
-**Current position:** Phase 1 and Phase 2 are complete; project-level release verification continues.
+**Current position:** Phase 1, Phase 2, and Phase 3 are complete/verified; project-level release verification continues.
 
 ---
 
@@ -379,7 +428,7 @@ Release readiness requires evidence across:
 |---|---|---|
 | **1** | Foundation | ✅ Complete |
 | **2** | Core implementation + integration | ✅ Complete |
-| **3** | Architecture / reliability | ⏳ Planned |
+| **3** | Reliability, retrieval + runtime verification | ✅ Complete |
 | **4** | Release engineering | ⏳ Planned |
 | **5** | Final integration + release readiness | ⏳ Planned |
 
@@ -458,6 +507,8 @@ python run_benchmark.py
 
 **Phase 2 record:** `19` phase-specific tests passed · `40` full backend tests passed · `0` failures · `0` errors · `1` warning.
 
+**Phase 3 record:** `57` tests passed at final Phase 3 HEAD `a3ada5ebf96e6dc65378e6397fc6e4b38d58e513`; Python 3.10 and 3.11 CI passed; Flake8 and CodeQL passed. The known Starlette/httpx TestClient deprecation warning is non-blocking and remains documented above.
+
 ---
 
 # 📁 Repository Map
@@ -535,7 +586,7 @@ Codemaster-Ai/
 ```text
 PHASE 1  ████████████████████  COMPLETE
 PHASE 2  ████████████████████  COMPLETE
-PHASE 3  ░░░░░░░░░░░░░░░░░░░░  NEXT
+PHASE 3  ████████████████████  COMPLETE / VERIFIED
 PHASE 4  ░░░░░░░░░░░░░░░░░░░░  PLANNED
 PHASE 5  ░░░░░░░░░░░░░░░░░░░░  PLANNED
 ```
