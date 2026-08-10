@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from app.llm.providers.base import BaseLLMProvider
+from .base import BaseLLMProvider
 
 
 class FallbackProvider(BaseLLMProvider):

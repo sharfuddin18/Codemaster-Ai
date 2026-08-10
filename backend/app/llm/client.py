@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from app.llm.factory import LLMFactory
+from .factory import LLMFactory
 
 logger = logging.getLogger("codemaster-ai")
 

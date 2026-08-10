@@ -5,10 +5,10 @@ import time
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from app.config import settings
-from app.llm.factory import LLMFactory
-from app.services import ollama_service
-from app.utils.helpers import parse_ollama_models_response
+from ..config import settings
+from ..llm.factory import LLMFactory
+from ..services import ollama_service
+from ..utils.helpers import parse_ollama_models_response
 
 logger = logging.getLogger("codemaster-ai")
 router = APIRouter(tags=["Health"])

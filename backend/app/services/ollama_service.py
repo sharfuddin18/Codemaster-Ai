@@ -4,8 +4,8 @@ from typing import Dict, Optional
 
 import ollama
 
-from app.config import settings
-from app.utils.retry_handler import retry_on_transient_error
+from ..config import settings
+from ..utils.retry_handler import retry_on_transient_error
 
 logger = logging.getLogger("codemaster-ai")
 

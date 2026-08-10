@@ -4,11 +4,11 @@ import logging
 import os
 from typing import Dict, Type
 
-from app.config import settings
-from app.llm.providers.base import BaseLLMProvider
-from app.llm.providers.fallback import FallbackProvider
-from app.llm.providers.ollama import OllamaProvider
-from app.llm.providers.openai import OpenAIProvider
+from ..config import settings
+from .providers.base import BaseLLMProvider
+from .providers.fallback import FallbackProvider
+from .providers.ollama import OllamaProvider
+from .providers.openai import OpenAIProvider
 
 logger = logging.getLogger("codemaster-ai")
 

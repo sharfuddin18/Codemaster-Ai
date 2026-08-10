@@ -5,12 +5,12 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
-from app.config import settings
-from app.llm.factory import LLMFactory
-from app.models import CodeRequest, CodeResponse, FixRequest
-from app.routes.generation import _generate_code_core, _fix_code_core, get_vector_engine
-from app.services.hybrid_retriever import HybridRetriever
-from app.services.vector_service import VectorService
+from ..config import settings
+from ..llm.factory import LLMFactory
+from ..models import CodeRequest, CodeResponse, FixRequest
+from .generation import _generate_code_core, _fix_code_core, get_vector_engine
+from ..services.hybrid_retriever import HybridRetriever
+from ..services.vector_service import VectorService
 from database.db import is_activated
 
 logger = logging.getLogger("codemaster-ai")
