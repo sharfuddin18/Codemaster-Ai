@@ -33,18 +33,14 @@ def test_mcp_retrieve(mock_get_vector):
 
 @patch("backend.app.routes.generation.get_vector_engine")
 @patch("backend.app.routes.generation.LLMFactory.create_provider")
-@patch("backend.app.routes.generation.select_best_model")
-def test_mcp_generate(mock_select, mock_create_provider, mock_get_vector):
+def test_mcp_generate(mock_create_provider, mock_get_vector):
     # Vector engine returns context chunks
     mock_engine = MagicMock()
     mock_engine.chunks = ["File: README.md\nsnippet"]
     mock_engine.search_context.return_value = mock_engine.chunks
     mock_get_vector.return_value = mock_engine
 
-    # Model selection
-    mock_select.return_value = {"model": "mock-model", "reason": "test"}
-
-    # Provider with async generate
+    # Provider-instantiation boundary
     mock_provider = MagicMock()
     mock_provider.is_ready.return_value = True
     mock_provider.provider_name = "mock"
@@ -61,14 +57,11 @@ def test_mcp_generate(mock_select, mock_create_provider, mock_get_vector):
 
 @patch("backend.app.routes.generation.get_vector_engine")
 @patch("backend.app.routes.generation.LLMFactory.create_provider")
-@patch("backend.app.routes.generation.select_best_model")
-def test_mcp_fix(mock_select, mock_create_provider, mock_get_vector):
+def test_mcp_fix(mock_create_provider, mock_get_vector):
     mock_engine = MagicMock()
     mock_engine.chunks = ["File: README.md\nsnippet"]
     mock_engine.search_context.return_value = mock_engine.chunks
     mock_get_vector.return_value = mock_engine
-
-    mock_select.return_value = {"model": "mock-model", "reason": "test"}
 
     mock_provider = MagicMock()
     mock_provider.is_ready.return_value = True

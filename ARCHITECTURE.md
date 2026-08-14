@@ -2,41 +2,51 @@
 
 ## Overview
 
-CodeMaster-AI is a local-first AI coding assistant built around a Python FastAPI backend, local Ollama inference, hybrid retrieval, specialized coding agents, CLI tooling, and an interactive terminal UI.
+CodeMaster-AI is a local-first AI coding assistant built around a Python FastAPI backend, local Ollama inference, hybrid retrieval, coding workflows, CLI tooling, terminal UI, MCP, patch workflows, and provenance verification.
 
-The architecture is designed to keep the development workflow close to the user's local environment while providing structured code generation, review, explanation, retrieval, patch generation, and provenance verification.
+Phase 5 consolidates production model selection into one authoritative routing path. Provider/model selection is no longer split between a ProviderManager, a simulated ModelOrchestrator, and service-local model rules.
 
 ## High-Level Flow
 
 ```text
-Terminal / CLI / TUI
-        |
-        v
-FastAPI backend
-        |
-        +--> Control routes
-        +--> Generation routes
-        +--> Health routes
-        +--> MCP routes
-        |
-        v
-Agent and orchestration layer
-        |
-        +--> Generator
-        +--> Reviewer
-        +--> Explainer
-        |
-        v
-Hybrid retrieval
-        |
-        +--> Dense vector retrieval
-        +--> BM25 keyword retrieval
-        |
-        v
-Local Ollama inference
-        |
-        v
-Generated response + provenance verification
+User Request
+    |
+    v
+Task Classifier
+    |
+    v
+Task Complexity
+    |
+    v
+Model Policy
+    |
+    v
+ModelRouter
+    |
+    v
+Structured RoutingDecision
+    |
+    v
+LLMFactory
+    |
+    v
+Ollama provider/model
+    |
+    v
+Response / AgentResult
+```
+
+Retrieval remains an independent context subsystem used by generation/fix workflows before the selected provider is invoked:
+
+```text
+Request
+  |
+  +--> Hybrid Retrieval --> Context / Provenance
+  |
+  +--> Unified Model Routing --> LLMFactory --> Provider
+                                      |
+                                      v
+                                   Response
 ```
 
 ## Repository Structure
@@ -45,13 +55,13 @@ Generated response + provenance verification
 
 Contains the primary Python backend and supporting services.
 
-- `app/` - FastAPI application, configuration, models, utilities, and API routes/services.
+- `app/` - FastAPI application, configuration, models, utilities, routes, services, and LLM abstractions.
 - `database/` - Persistent application state backed by TinyDB.
-- `model_orchestrator.py` - Model orchestration abstraction.
-- `provider_manager.py` - Provider management abstraction.
 - `session_memory.py` - Session-level memory handling.
 - `tui_app.py` - Interactive terminal user interface.
 - `tests/` - Backend-focused automated tests.
+
+The former `provider_manager.py` and `model_orchestrator.py` production abstractions were retired in Phase 5 because they duplicated or simulated provider/model routing.
 
 ### `cli_tools/`
 
@@ -67,76 +77,120 @@ Contains repository automation, issue templates, Dependabot configuration, and G
 
 ### `data/`
 
-Contains local application data and Ollama-related resources used by the development environment.
+Contains local application data and Ollama-related development resources.
 
 ## FastAPI Application
 
 The main FastAPI application is defined in `backend/app/main.py`.
 
-The application initializes persisted state, configures request logging and lifecycle handling, and connects the main API to dedicated routers.
+The application initializes persisted state, configures request logging and lifecycle handling, and connects the main API to dedicated routers for control, generation, health, and MCP functionality.
 
-The current router structure includes:
+Pydantic models in `backend/app/models.py` define structured API request and response data such as code generation requests, fixes, sources, and provenance information.
 
-- Control functionality
-- Code generation functionality
-- Health checks
-- Model Context Protocol (MCP) functionality
+Phase 3 runtime verification exercised applicable FastAPI/TestClient paths through the real application environment, including request validation, generation, retrieval/provider failure handling, and response/error behavior.
 
-Pydantic models in `backend/app/models.py` define structured request and response data such as code generation requests, fixes, sources, and provenance information.
+## Phase 5 Model and Provider Architecture
 
-Phase 3 runtime verification exercised applicable FastAPI/TestClient paths through the real application environment, including request validation, successful generation, retrieval/provider failure handling, and response/error behavior.
+### Authoritative routing types
 
-## AI and Model Layer
+`backend/app/llm/routing.py` defines the production routing vocabulary:
 
-The backend separates model/provider responsibilities from the API layer.
+- `TaskType` - high-level coding task category.
+- `TaskComplexity` - deterministic complexity classification.
+- `AgentRequest` - structured input to the routing system.
+- `ModelPolicy` - explicit deterministic model-selection policy.
+- `RoutingDecision` - structured provider/model decision.
+- `AgentResult` - structured result boundary for agent/model workflows.
 
-### Model orchestration
+### Task classification
 
-`backend/model_orchestrator.py` provides the model orchestration abstraction used to coordinate model operations.
+`TaskClassifier` is the single production classification path. It determines `TaskType` and `TaskComplexity` instead of allowing FastAPI, MCP, CLI, TUI, or individual services to maintain independent model-selection rules.
 
-The verified Phase 3 request flow is:
+### Model policy
+
+`ModelPolicy` centralizes the model-selection behavior that previously lived in `ollama_service.py` and the simulated `ModelOrchestrator`. The Phase 5 policy preserves the repository's existing model names and deterministic routing behavior; it does not invent cloud providers or unsupported model capabilities.
+
+### ModelRouter
+
+`ModelRouter` is the one authoritative production router. It converts an `AgentRequest` into a `RoutingDecision` containing task type, complexity, provider, model, and selection reason.
+
+Production generation/fix flows use:
 
 ```text
-Request
-  ↓
-Routing
-  ↓
-Retrieval
-  ↓
-Context Assembly
-  ↓
-Agent
-  ↓
-Provider
-  ↓
-Response
+AgentRequest
+    ↓
+TaskClassifier
+    ↓
+TaskComplexity
+    ↓
+ModelPolicy
+    ↓
+ModelRouter
+    ↓
+RoutingDecision
 ```
 
-Phase 3 verified routing, retrieval/context handoff, provider selection, response handling, and controlled failure propagation.
+### LLMFactory
 
-### Provider management
+`backend/app/llm/factory.py` is the single provider-instantiation boundary.
 
-`backend/provider_manager.py` provides provider-management functionality so model access is not tightly coupled to individual API routes.
+`LLMFactory.create(decision)` consumes the structured `RoutingDecision`, creates the selected provider, and returns the already-selected model name. It does not perform a second business-level routing decision.
 
-Verified provider behavior includes provider/model selection, availability handling, provider exceptions, malformed/empty responses, and disabled-provider behavior. Local and cloud provider paths remain distinct.
+The existing `LLMClient` remains a compatibility wrapper around `LLMFactory`; it does not own model selection.
+
+### ProviderManager
+
+`backend/provider_manager.py` was retired in Phase 5. Its provider-selection responsibility duplicated `LLMFactory` and could create a competing production path.
+
+No production caller remains dependent on it.
+
+### ModelOrchestrator
+
+`backend/model_orchestrator.py` was retired in Phase 5. Its implementation simulated streaming output and independently selected between hard-coded models, so retaining it would have created a misleading competing production orchestration path.
+
+Its removal does not remove test mocks/fakes or the actual provider implementations.
 
 ### Ollama
 
-CodeMaster-AI uses Ollama for local LLM inference. This keeps the primary model execution path on the local development environment when configured for Ollama.
+`backend/app/llm/providers/ollama.py` is the actual local Ollama provider implementation. It executes a provider/model already selected by the routing layer and does not perform business-level model routing.
 
-Ollama provider behavior and unavailable-provider handling are covered by the available test environment; live Ollama model execution remains environment-dependent and is not claimed as a live Phase 3 verification result.
+`backend/app/services/ollama_service.py` retains only low-level compatibility helpers and a compatibility `select_best_model` facade that delegates to `ModelRouter`. It no longer contains an independent model-selection table.
+
+Live Ollama model execution remains environment-dependent. Tests may mock provider behavior, but no unavailable live execution is presented as a real Ollama result.
+
+## Production Generation Flow
+
+Generation and fix routes now converge on the same architecture:
+
+```text
+FastAPI request
+    ↓
+AgentRequest
+    ↓
+ModelRouter
+    ↓
+RoutingDecision
+    ↓
+LLMFactory
+    ↓
+Ollama / configured provider
+    ↓
+Response verification
+    ↓
+CodeResponse / provenance
+```
+
+Retrieval is still performed by the existing Phase 3 hybrid retrieval path and remains responsible for repository context, not provider selection.
 
 ## Retrieval and Agents
 
 The project uses a hybrid retrieval pipeline combining dense vector retrieval with BM25 keyword ranking.
 
-Phase 3 regression-tested the hybrid ranking path so dense and BM25 signals both participate rather than merely existing as separate retrieval functions. Retrieval validation covers top-k handling, empty/no-result behavior, retrieval metadata/provenance, and controlled retrieval failures.
+Phase 3 regression-tested the hybrid ranking path so dense and BM25 signals both participate. Retrieval validation covers top-k handling, empty/no-result behavior, retrieval metadata/provenance, and controlled retrieval failures.
 
 ### Vector persistence and indexing
 
 Phase 3 verified vector-index creation, embedding insertion, similarity search, FAISS persistence/reload, embedding-dimension metadata validation, corrupted/incompatible persistence handling, rebuild behavior, and explicit vector-index failure state.
-
-A reliability defect was corrected where an indexing failure could be logged/skipped and leave a partially built index appearing usable. The vector engine now surfaces the indexing failure rather than incorrectly reporting a successful `READY` state.
 
 ### Incremental indexing and cache
 
@@ -157,110 +211,65 @@ New       → Process
 
 Phase 3 verified unchanged-file reuse, changed/deleted-file invalidation, cache persistence/reload, stale-context prevention, and index/cache consistency.
 
-The architecture also includes specialized coding agents for:
-
-- Code generation
-- Code review
-- Code explanation
-
-This separation allows retrieval and model orchestration to support different coding tasks without placing all responsibilities inside the HTTP layer.
-
 ## MCP Runtime Boundary
 
-The MCP capabilities and `retrieve`, `generate`, and `fix` routes were exercised through runtime tests. Coverage includes request validation, controlled retrieval/provider failures, and response structure rather than route inspection alone.
+MCP capabilities and the `retrieve`, `generate`, and `fix` routes are covered by runtime tests. Provider/model selection must converge on the same routing architecture rather than maintaining a separate MCP provider factory.
 
 ## Provenance and Verification
 
-Generated responses can include provenance and source information. The project contains dedicated provenance-verification tests and models for representing sources and provenance data.
+Generated responses can include provenance and source information. Dedicated verification tests and models represent sources and provenance data.
 
-The goal is to make generated results easier to inspect and validate rather than treating model output as inherently trustworthy.
-
-Phase 3 routes generation context through hybrid retrieval and preserves retrieval metadata/provenance for response verification.
-
-## Persistence and Session State
-
-`backend/database/db.py` provides application state persistence through TinyDB.
-
-`backend/session_memory.py` provides session-level memory handling for conversational or task-oriented workflows.
-
-The FastAPI application loads persisted state during startup and performs cleanup during shutdown.
+The goal is to make generated results inspectable rather than treating successful model execution as proof of correctness.
 
 ## CLI and Terminal UI
 
-CodeMaster-AI provides multiple interaction surfaces:
-
-- CLI helper scripts under `cli_tools/`
-- `run_tui.py` for the interactive terminal interface
-- REST endpoints exposed by the FastAPI backend
-
-The TUI is implemented using Textual and Rich and provides terminal-oriented views for coding workflows and provenance information.
+CodeMaster-AI provides CLI helper scripts, `run_tui.py`, and REST endpoints. The TUI is implemented using Textual and Rich. Where these interfaces request model execution, model-selection responsibility belongs to the same routing/factory architecture rather than an interface-specific provider-selection implementation.
 
 ## Patch-Based Workflow
 
-The project supports patch-based fixes that produce `.patch` files suitable for applying with Git. This provides a safer workflow for reviewing generated changes before applying them to a working tree.
-
-Phase 3 verified valid and malformed patch handling, invalid and unsafe paths, path traversal protection, patch conflicts/failures, successful application, and post-application verification. Unsafe paths are rejected before patch application.
+The project supports patch-based fixes that produce `.patch` files suitable for applying with Git. Phase 3 verified valid and malformed patch handling, unsafe paths, path traversal protection, conflicts/failures, successful application, and post-application verification.
 
 ## Failure Propagation and Reliability
 
-Phase 3 reviewed relevant retrieval, vector, cache, provider, agent, MCP, FastAPI, and patch paths for silent-failure patterns. Cases where genuine infrastructure failures could otherwise appear successful were corrected. This does not claim that every generic exception or fallback pattern was removed.
+Phase 3 reviewed relevant retrieval, vector, cache, provider, agent, MCP, FastAPI, and patch paths for silent-failure patterns. Genuine infrastructure failures are surfaced rather than presented as successful partial state.
+
+Phase 5 adds routing-level validation for unsupported providers, empty requests, malformed routing decisions, and deterministic policy behavior.
 
 ## Testing
 
-The repository contains backend and project-level tests covering areas including:
+Phase 5 adds dedicated routing coverage for:
 
-- Application structure
-- Code generation
-- Helper utilities
-- MCP functionality
-- Ollama services
-- Persistent state
-- Agents
-- Provenance verification
-- Vector retrieval
-- Cache behavior
-- Hybrid ranking
-- Vector persistence/reload and failure behavior
-- Provider behavior
-- Patch validation
+- `TaskType` and `TaskComplexity` classification;
+- deterministic `ModelPolicy` behavior;
+- structured `RoutingDecision` values;
+- unsupported provider handling;
+- `LLMFactory` integration;
+- compatibility delegation from the legacy model-selection facade;
+- structured `AgentResult` construction.
 
-Phase 3 final verification recorded `57` passing tests, Python 3.10 CI pass, Python 3.11 CI pass, Flake8 pass, and CodeQL pass. `pip check` also passed in the final verification environment.
-
-The BM25 regression fixture was corrected after the initial test exposed that its corpus was too small for the intended IDF distinction; an unrelated document was added while preserving the intended assertion.
-
-A known non-blocking Starlette/httpx TestClient deprecation warning remains under FastAPI `0.141.1`, Starlette `1.6.0`, and httpx `0.28.1`. The warning does not currently fail the test suite, and no speculative dependency upgrade was performed.
-
-Tests should be run before submitting changes so that documentation, tooling, and application changes can be validated independently.
+The existing backend/project tests remain the regression boundary. Phase 5 does not delete or weaken existing tests and does not require live Ollama execution to validate the routing architecture.
 
 ## Configuration
 
-Backend configuration is managed through the application configuration layer in `backend/app/config.py`.
+Backend configuration is managed through `backend/app/config.py`.
 
-The repository also provides `backend/.env.example` for documenting expected environment configuration. Secrets and local credentials should not be committed.
+The repository also provides `backend/.env.example` for expected environment configuration. Secrets and local credentials should not be committed.
 
 ## Development and Deployment
 
-Local development can run the FastAPI backend with Uvicorn. The repository also contains Docker configuration for backend services.
+Local development can run the FastAPI backend with Uvicorn. Docker configuration is provided for backend services.
 
 GitHub Actions workflows under `.github/workflows/` provide repository automation. Production deployment configuration should be treated separately from local development changes.
 
 ## Design Principles
 
-The architecture follows several practical principles:
-
-1. Keep model execution local when possible.
-2. Separate API routing from model/provider orchestration.
-3. Combine semantic and keyword retrieval.
-4. Make generated changes reviewable through patch-based workflows.
-5. Preserve provenance information where available.
-6. Keep automated tests alongside the components they validate.
-7. Avoid coupling development tooling directly to production deployment.
-8. Surface genuine infrastructure failures rather than presenting partial state as successful.
-9. Keep incremental index and cache state consistent with repository changes.
-
-## Related Documentation
-
-- `README.md` - Project overview and quickstart.
-- `CONTRIBUTING.md` - Contribution workflow and review guidelines.
-- `SECURITY.md` - Security guidance.
-- `CODE_OF_CONDUCT.md` - Community standards.
+1. Keep model execution local when configured for Ollama.
+2. Keep one authoritative production model-routing path.
+3. Keep `LLMFactory` as the single provider-instantiation boundary.
+4. Separate API routing from model/provider orchestration.
+5. Combine semantic and keyword retrieval.
+6. Make generated changes reviewable through patch-based workflows.
+7. Preserve provenance information where available.
+8. Keep automated tests alongside the components they validate.
+9. Surface genuine infrastructure failures rather than presenting partial state as successful.
+10. Keep incremental index and cache state consistent with repository changes.
