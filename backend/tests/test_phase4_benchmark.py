@@ -26,8 +26,22 @@ class Phase4MetricTests(unittest.TestCase):
         self.assertIsNone(calculate_tps(0, 0))
         self.assertIsNone(calculate_tps("100", 2_000_000_000))
 
-    def test_retrieval_precision_is_source_intersection(self):
-        self.assertEqual(retrieval_precision(["a.py", "b.py"], ["b.py", "c.py"]), 0.5)
+    def test_retrieval_precision_counts_relevant_retrieved_sources(self):
+        self.assertAlmostEqual(
+            retrieval_precision(["a.py"], ["a.py", "b.py", "c.py"]),
+            1 / 3,
+        )
+
+    def test_retrieval_precision_perfect(self):
+        self.assertEqual(retrieval_precision(["a.py", "b.py"], ["a.py", "b.py"]), 1.0)
+
+    def test_retrieval_precision_zero_relevant(self):
+        self.assertEqual(retrieval_precision(["a.py"], ["b.py", "c.py"]), 0.0)
+
+    def test_retrieval_precision_empty_retrieval(self):
+        self.assertEqual(retrieval_precision(["a.py"], []), 0.0)
+
+    def test_retrieval_precision_empty_expected_sources(self):
         self.assertEqual(retrieval_precision([], ["a.py"]), 0.0)
 
     def test_aggregate_handles_missing_metrics(self):

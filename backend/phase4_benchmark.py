@@ -108,11 +108,12 @@ def safe_environment() -> dict[str, Any]:
 
 
 def retrieval_precision(expected: Sequence[str], retrieved: Sequence[str]) -> float:
+    """Return the fraction of retrieved source entries that are relevant."""
     expected_set = {str(x) for x in expected if str(x)}
-    retrieved_set = {str(x) for x in retrieved if str(x)}
-    if not expected_set:
+    retrieved_values = [str(x) for x in retrieved if str(x)]
+    if not retrieved_values:
         return 0.0
-    return len(expected_set & retrieved_set) / len(expected_set)
+    return sum(source in expected_set for source in retrieved_values) / len(retrieved_values)
 
 
 def _number(value: Any) -> int | float | None:
@@ -396,8 +397,7 @@ def execute(
             "ttft": "wall-clock elapsed from HTTP request start until first non-empty streamed response chunk",
             "tps": "Ollama eval_count divided by eval_duration in seconds",
             "retrieval_precision": (
-                "expected source files intersected with retrieved source files "
-                "divided by expected source files"
+                "relevant retrieved source entries divided by retrieved source entries"
             ),
         },
     }

@@ -23,11 +23,15 @@ If Ollama does not provide valid token/timing metadata, TPS is recorded as unava
 
 ### Context Retrieval Precision
 
-Each benchmark case declares expected repository source files. Precision is calculated deterministically as:
+Each benchmark case declares expected repository source files. **Context Retrieval Precision measures the fraction of retrieved source entries that are relevant to the expected source set.** It is calculated deterministically as:
 
-`|expected sources ∩ retrieved sources| / |expected sources|`
+`number of relevant retrieved sources / number of retrieved sources`
 
-This is source-file precision, not a semantic relevance score.
+For example, expected `['a.py']` and retrieved `['a.py', 'b.py', 'c.py']` gives `1 / 3 = 0.333333...`.
+
+If no sources are retrieved, precision is `0.0`. If the expected source set is empty, precision is also deliberately defined as `0.0` because there is no positive relevance target.
+
+This is source-file precision, not a semantic relevance score, and it must not be confused with recall of expected sources.
 
 ## Benchmark cases
 
