@@ -1,0 +1,22 @@
+[
+  {
+    "case_id": "retrieval-hybrid-ranking",
+    "task": "Explain how Codemaster-AI combines dense vector retrieval and BM25, including how the hybrid score is formed.",
+    "expected_sources": ["backend/app/services/hybrid_retriever.py"]
+  },
+  {
+    "case_id": "vector-index-failure-state",
+    "task": "Explain how the repository vector engine handles indexing failures and what state it exposes after a failed build.",
+    "expected_sources": ["backend/app/utils/vector_engine.py"]
+  },
+  {
+    "case_id": "generation-context-handoff",
+    "task": "Explain how the generation route retrieves repository context and passes it into the model prompt, including the retrieval failure behavior.",
+    "expected_sources": ["backend/app/routes/generation.py"]
+  },
+  {
+    "case_id": "ollama-provider-runtime",
+    "task": "Explain how the Ollama provider calls the local API, selects its model, and handles provider failures.",
+    "expected_sources": ["backend/app/llm/providers/ollama.py"]
+  }
+]
