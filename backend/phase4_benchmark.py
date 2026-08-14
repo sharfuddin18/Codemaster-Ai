@@ -13,6 +13,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
+from urllib.parse import urlsplit, urlunsplit
 
 
 @dataclass(frozen=True)
@@ -89,13 +90,20 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def safe_ollama_url(value: str) -> str:
+    parsed = urlsplit(value)
+    host = parsed.hostname or "localhost"
+    port = f":{parsed.port}" if parsed.port else ""
+    return urlunsplit((parsed.scheme or "http", f"{host}{port}", parsed.path, "", ""))
+
+
 def safe_environment() -> dict[str, Any]:
     return {
         "python": platform.python_version(),
         "platform": platform.platform(),
         "system": platform.system(),
         "machine": platform.machine(),
-        "ollama_base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        "ollama_base_url": safe_ollama_url(os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")),
     }
 
 
@@ -194,6 +202,8 @@ def _post_json_stream(
                 if not raw_line.strip():
                     continue
                 item = json.loads(raw_line.decode("utf-8"))
+                if item.get("error"):
+                    raise RuntimeError(f"Ollama returned an error: {item['error']}")
                 chunk = str(item.get("response", ""))
                 if chunk and first_token_time is None:
                     first_token_time = time.perf_counter()
@@ -376,7 +386,7 @@ def execute(
         results.append(rag)
     config = {
         "model": model,
-        "ollama_base_url": base_url,
+        "ollama_base_url": safe_ollama_url(base_url),
         "timeout_seconds": timeout,
         "top_k": top_k,
         "alpha": alpha,
