@@ -1,49 +1,61 @@
-import httpx
+from __future__ import annotations
+
 import logging
 import os
+from typing import Any, Dict
+
+import httpx
+
+from .base import BaseLLMProvider
 
 logger = logging.getLogger("codemaster-ai")
 
-class OllamaProvider:
 
+class OllamaProvider(BaseLLMProvider):
+    """Local Ollama provider implementation.
 
-    provider_name = "ollama"
-    def get_status(self) -> dict:
-        """Return the operational status of the Ollama provider."""
-        return {
-            "provider": "ollama",
-            "status": "healthy" if (self.is_available() if callable(getattr(self, "is_available", None)) else getattr(self, "is_available", True)) else "degraded"
-        }
-    def __init__(self, provider_key: str = "ollama"):
+    Model selection is supplied by ModelRouter/LLMFactory. The provider only
+    executes the already-selected provider/model request.
+    """
+
+    def __init__(self, provider_name: str | None = None):
+        super().__init__(provider_name or "ollama")
         self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.is_available = os.getenv("OLLAMA_ENABLED", "true").lower() == "true"
-        self._last_error = None
+        self.enabled = os.getenv("OLLAMA_ENABLED", "true").lower() == "true"
+        self._last_error: str | None = None
 
-    async def generate(self, prompt: str, **kwargs) -> str:
-        if not self.is_available:
+    async def generate(self, prompt: str, model: str | None = None) -> str:
+        if not self.is_ready():
             raise RuntimeError("ollama provider is disabled")
 
-        model = kwargs.get("model", "qwen2.5-coder:1.5b")
-        url = f"{self.base_url}/api/generate"
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "stream": False
-        }
+        selected_model = model or "qwen2.5-coder:1.5b"
+        url = f"{self.base_url.rstrip('/')}/api/generate"
+        payload = {"model": selected_model, "prompt": prompt, "stream": False}
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(url, json=payload)
                 if response.status_code != 200:
                     raise RuntimeError(f"Ollama API error: {response.text}")
                 data = response.json()
-                return data.get("response", "")
-        except Exception as e:
-            logger.error(f"Ollama generation failed: {e}")
-            raise RuntimeError(f"Ollama generation failed: {e}")
+                result = data.get("response", "")
+                if not isinstance(result, str):
+                    raise RuntimeError("Ollama returned a malformed response")
+                self._last_error = None
+                return result
+        except Exception as exc:
+            self._last_error = str(exc)
+            logger.error("Ollama generation failed: %s", exc)
+            raise RuntimeError(f"Ollama generation failed: {exc}") from exc
 
     def is_ready(self) -> bool:
-        import os
-        val = os.getenv("OLLAMA_ENABLED")
-        if val is not None:
-            return val.lower() not in ("false", "0", "no", "off")
-        return True
+        value = os.getenv("OLLAMA_ENABLED")
+        if value is not None:
+            return value.lower() not in ("false", "0", "no", "off")
+        return self.enabled
+
+    def get_status(self) -> Dict[str, Any]:
+        return {
+            "provider": self.provider_name,
+            "ready": self.is_ready(),
+            "last_error": self._last_error,
+        }
