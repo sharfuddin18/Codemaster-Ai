@@ -78,10 +78,10 @@ class TaskClassifier:
 
     def _classify_type(self, prompt: str) -> TaskType:
         text = prompt.lower()
-        if re.search(r"\b(refactor|architecture)\b", text):
-            return TaskType.REFACTOR if "refactor" in text else TaskType.ARCHITECTURE
         if re.search(r"\b(audit)\b", text):
             return TaskType.AUDIT
+        if re.search(r"\b(refactor|architecture)\b", text):
+            return TaskType.REFACTOR if "refactor" in text else TaskType.ARCHITECTURE
         if re.search(r"\b(fix|debug|bug|repair)\b", text):
             return TaskType.FIX
         return TaskType.GENERATION
