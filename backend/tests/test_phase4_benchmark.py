@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from phase4_benchmark import (
+from scripts.phase4_benchmark import (
     BenchmarkCase,
     BenchmarkRun,
     InferenceResult,

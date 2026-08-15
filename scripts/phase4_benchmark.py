@@ -317,7 +317,7 @@ def rag_prompt(case: BenchmarkCase, context: Sequence[dict[str, Any]]) -> str:
 
 def load_cases(path: Path | None = None) -> list[BenchmarkCase]:
     if path is None:
-        default_path = Path(__file__).resolve().parents[1] / "benchmarks" / "phase4_cases.json"
+        default_path = Path(__file__).resolve().parents[2] / "benchmarks" / "phase4_cases.json"
         if default_path.exists():
             path = default_path
         else:
