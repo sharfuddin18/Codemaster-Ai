@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
-    INDEX_DIR: str = "/workspaces/Codemaster-Ai/backend/data"
+    INDEX_DIR: str = "data/index"
 
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:8080"
