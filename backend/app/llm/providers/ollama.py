@@ -6,6 +6,7 @@ from typing import Any, Dict
 
 import httpx
 
+from ...config import settings
 from .base import BaseLLMProvider
 
 logger = logging.getLogger("codemaster-ai")
@@ -20,9 +21,20 @@ class OllamaProvider(BaseLLMProvider):
 
     def __init__(self, provider_name: str | None = None):
         super().__init__(provider_name or "ollama")
-        self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        self.enabled = os.getenv("OLLAMA_ENABLED", "true").lower() == "true"
+        self.base_url = (
+            os.getenv("OLLAMA_BASE_URL")
+            or os.getenv("OLLAMA_HOST")
+            or settings.OLLAMA_HOST
+        )
+        self.enabled = self._enabled_from_env()
         self._last_error: str | None = None
+
+    @staticmethod
+    def _enabled_from_env() -> bool:
+        value = os.getenv("OLLAMA_ENABLED")
+        if value is not None:
+            return value.lower() not in ("false", "0", "no", "off")
+        return bool(settings.OLLAMA_ENABLED)
 
     async def generate(self, prompt: str, model: str | None = None) -> str:
         if not self.is_ready():
@@ -31,8 +43,9 @@ class OllamaProvider(BaseLLMProvider):
         selected_model = model or "qwen2.5-coder:1.5b"
         url = f"{self.base_url.rstrip('/')}/api/generate"
         payload = {"model": selected_model, "prompt": prompt, "stream": False}
+        timeout = settings.OLLAMA_TIMEOUT or 60.0
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(url, json=payload)
                 if response.status_code != 200:
                     raise RuntimeError(f"Ollama API error: {response.text}")
@@ -48,14 +61,12 @@ class OllamaProvider(BaseLLMProvider):
             raise RuntimeError(f"Ollama generation failed: {exc}") from exc
 
     def is_ready(self) -> bool:
-        value = os.getenv("OLLAMA_ENABLED")
-        if value is not None:
-            return value.lower() not in ("false", "0", "no", "off")
-        return self.enabled
+        return self._enabled_from_env()
 
     def get_status(self) -> Dict[str, Any]:
         return {
             "provider": self.provider_name,
             "ready": self.is_ready(),
+            "base_url": self.base_url,
             "last_error": self._last_error,
         }

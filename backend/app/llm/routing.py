@@ -10,6 +10,8 @@ import re
 from dataclasses import dataclass, field
 from enum import Enum
 
+from ..config import settings
+
 
 class TaskType(str, Enum):
     """Repository-supported high-level coding task categories."""
@@ -84,6 +86,8 @@ class TaskClassifier:
             return TaskType.REFACTOR if "refactor" in text else TaskType.ARCHITECTURE
         if re.search(r"\b(fix|debug|bug|repair)\b", text):
             return TaskType.FIX
+        if re.search(r"\b(complete|autocomplete|finish this)\b", text):
+            return TaskType.COMPLETION
         return TaskType.GENERATION
 
     def _classify_complexity(self, prompt: str, task_type: TaskType) -> TaskComplexity:
@@ -177,7 +181,7 @@ class ModelRouter:
 
     def route(self, request: AgentRequest) -> RoutingDecision:
         task_type, complexity = self.classifier.classify(request)
-        provider = (request.provider_override or "ollama").strip().lower()
+        provider = (request.provider_override or settings.LLM_PROVIDER or "ollama").strip().lower()
         if provider not in self.SUPPORTED_PROVIDERS:
             raise ValueError(f"Unsupported provider: {provider}")
         model, reason = self.policy.choose(request, task_type, complexity)

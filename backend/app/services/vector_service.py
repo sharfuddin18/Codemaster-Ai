@@ -61,3 +61,7 @@ class VectorService:
         ]
         results.sort(key=lambda item: (-item["score"], str(item["id"])))
         return results[:top_k]
+
+    def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+        """Compatibility alias used by the code-agent retrieval boundary."""
+        return self.query(query, top_k=top_k)

@@ -63,6 +63,10 @@ class CodeResponse(BaseModel):
         None,
         description="Optional provenance metadata: cited indices and source file mapping",
     )
+    patch: Optional[str] = Field(
+        None,
+        description="Optional Git unified diff produced for reviewable fix workflows",
+    )
 
     model_config = ConfigDict(
         json_json_schema_extra = {
@@ -88,6 +92,11 @@ class FixRequest(BaseModel):
         None,
         max_length=1000,
         description="Specific fix instructions (optional, defaults to general bug fixes)"
+    )
+    file_path: Optional[str] = Field(
+        None,
+        max_length=500,
+        description="Relative repository path used to generate a reviewable unified patch",
     )
 
     model_config = ConfigDict(

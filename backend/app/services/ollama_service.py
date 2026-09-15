@@ -6,7 +6,7 @@ integrations, but it no longer owns provider or model routing.
 """
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 import ollama
 
@@ -15,6 +15,9 @@ from ..llm.routing import select_best_model
 from ..utils.retry_handler import retry_on_transient_error
 
 _client: Optional[ollama.AsyncClient] = None
+_models_cache: Optional[List[str]] = None
+_cache_timestamp: float = 0.0
+CACHE_TTL = 60.0
 
 
 def get_ollama_client() -> ollama.AsyncClient:
@@ -29,9 +32,11 @@ def get_ollama_client() -> ollama.AsyncClient:
 
 
 async def close_ollama_client() -> None:
-    """Release the legacy client reference."""
-    global _client
+    """Release the legacy client reference and model-list cache."""
+    global _client, _models_cache, _cache_timestamp
     _client = None
+    _models_cache = None
+    _cache_timestamp = 0.0
 
 
 @retry_on_transient_error(retries=3, base_delay=0.5, max_delay=4.0)
@@ -50,6 +55,7 @@ def provider_status() -> Dict[str, object]:
 
 
 __all__ = [
+    "CACHE_TTL",
     "close_ollama_client",
     "generate_with_retry",
     "get_ollama_client",
