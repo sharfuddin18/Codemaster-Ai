@@ -6,14 +6,16 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
 
+from ..agents.code_agent import SYSTEM_PROMPT
 from ..config import settings
-from ..models import CodeRequest, CodeResponse, FixRequest, Provenance, Source
 from ..llm.factory import LLMFactory
 from ..llm.routing import AgentRequest, ModelRouter, TaskType
+from ..models import CodeRequest, CodeResponse, FixRequest, Provenance, Source
 from ..services.hybrid_retriever import HybridRetriever
+from ..services.patch_generator import generate_unified_patch
 from ..services.response_verifier import verify_response
 from ..services.vector_service import VectorService
-from ..utils.vector_engine import CodeVectorEngine
+from ..utils.vector_engine import CodeVectorEngine, IndexConfig
 from database.db import is_activated
 
 logger = logging.getLogger("codemaster-ai")
@@ -28,11 +30,15 @@ def get_vector_engine() -> CodeVectorEngine:
     global _vector_engine
     if _vector_engine is None:
         repo_root = Path(__file__).resolve().parents[3]
+        index_dir = Path(settings.INDEX_DIR)
+        if not index_dir.is_absolute():
+            index_dir = repo_root / index_dir
+        index_dir.mkdir(parents=True, exist_ok=True)
         _vector_engine = CodeVectorEngine(
-            config=__import__("backend.app.utils.vector_engine", fromlist=["IndexConfig"]).IndexConfig(
+            config=IndexConfig(
                 source_dir=repo_root,
-                cache_db_path=repo_root / ".codemaster" / "cache.db",
-                persist_path=repo_root / ".codemaster" / "vector_index",
+                cache_db_path=index_dir / "cache.db",
+                persist_path=index_dir / "vector_index",
             )
         )
     return _vector_engine
@@ -124,6 +130,15 @@ def _build_provenance(cited: list[int], index_map: dict[int, dict[str, str]]) ->
     )
 
 
+def _ensure_provider_ready(provider, decision) -> None:
+    if provider.is_ready():
+        return
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail=f"LLM provider '{decision.provider}' is not ready",
+    )
+
+
 def _route_generation(prompt: str, language: str | None, model_override: str | None):
     request = AgentRequest(
         prompt=prompt,
@@ -145,6 +160,94 @@ def _route_fix(file_code: str, model_override: str | None):
     return _model_router.route(request)
 
 
+def _build_generation_prompt(prompt: str, language: str | None, context_prompt: str) -> str:
+    language_label = language or "[AUTO DETECTED]"
+    if context_prompt:
+        return (
+            f"{SYSTEM_PROMPT}\n"
+            "Only use information from the provided repository context when it is relevant.\n"
+            "When you reference or rely on repository content, cite the supporting context by placing the chunk index in square brackets (e.g. [1], [2]) inline next to the code or comment.\n"
+            "If you cannot find supporting repository context for the request, respond with exactly:\n"
+            "I don't have enough repository context to answer this. Abstaining.\n"
+            f"Generate clean, optimized {language_label} code for:\n{prompt}\n"
+            f"{context_prompt}"
+            "Return only code. Do not include explanations or markdown fences."
+        )
+    return (
+        f"{SYSTEM_PROMPT}\n"
+        f"Generate clean, optimized {language_label} code for:\n{prompt}\n"
+        "No repository context was retrieved. Produce a complete solution from the prompt.\n"
+        "Return only code. Do not include explanations or markdown fences."
+    )
+
+
+def _build_fix_prompt(file_code: str, instructions: str | None, context_prompt: str) -> str:
+    instruction_text = instructions or "Fix all bugs and optimize for best practices."
+    if context_prompt:
+        return (
+            f"{SYSTEM_PROMPT}\n"
+            "Only use the provided repository context to inform fixes; cite chunk indices inline when referencing repository content.\n"
+            f"Given this code:\n{file_code}\n\n"
+            f"Instructions: {instruction_text}\n"
+            f"{context_prompt}"
+            "Return only the fixed code. Do not include explanations or markdown fences."
+        )
+    return (
+        f"{SYSTEM_PROMPT}\n"
+        f"Given this code:\n{file_code}\n\n"
+        f"Instructions: {instruction_text}\n"
+        "No repository context was retrieved. Apply the requested fixes directly.\n"
+        "Return only the fixed code. Do not include explanations or markdown fences."
+    )
+
+
+def _finalize_output(code: str, index_map: dict[int, dict[str, str]]) -> tuple[str, str, float, Provenance | None]:
+    if not index_map:
+        return code, "Generated without repository citations because no context was retrieved.", 0.8, None
+
+    ok, reason, cited = verify_response(code, allowed_indices=list(index_map.keys()))
+    if not ok:
+        logger.warning("Generation output rejected: %s", reason)
+        return (
+            "// Aborted: generated output missing required repository citations.",
+            "Abstained due to missing citations in model output.",
+            0.0,
+            None,
+        )
+    return code, "verified", 0.95, _build_provenance(cited, index_map)
+
+
+def _optional_patch(file_path: str | None, original: str, modified: str) -> str | None:
+    if not file_path or not modified or modified.startswith("// Aborted:"):
+        return None
+    try:
+        patch_res = generate_unified_patch(file_path, original, modified)
+    except ValueError as exc:
+        logger.warning("Skipping patch generation: %s", exc)
+        return None
+    if not patch_res.get("has_changes"):
+        return None
+    return patch_res.get("patch")
+
+
+async def _invoke_provider(provider, prompt: str, model: str, timeout_detail: str) -> str:
+    try:
+        response_text = await asyncio.wait_for(
+            provider.generate(prompt, model=model),
+            timeout=settings.GENERATION_TIMEOUT,
+        )
+        return response_text or "// No code generated."
+    except asyncio.TimeoutError:
+        logger.exception("%s timeout", timeout_detail)
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=f"{timeout_detail} timed out") from None
+    except Exception as exc:
+        logger.exception("%s failed", timeout_detail)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"{timeout_detail} failed: {exc}",
+        ) from exc
+
+
 async def _generate_code_core(
     prompt: str,
     language: str | None = None,
@@ -152,65 +255,27 @@ async def _generate_code_core(
 ) -> CodeResponse:
     decision = _route_generation(prompt, language, model_override)
     provider, chosen_model = LLMFactory.create(decision)
-
-    if not provider.is_ready() and decision.provider != "ollama":
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"LLM provider '{decision.provider}' is not configured",
-        )
+    _ensure_provider_ready(provider, decision)
 
     context_prompt, index_map = build_context_prompt(prompt)
-    if not context_prompt:
-        return CodeResponse(
-            code="// Aborted: no supporting repository context found.",
-            explanation="Abstained due to lack of repository context.",
-            confidence=0.0,
-            model_used=chosen_model,
-            elapsed_ms=0,
-        )
-
-    task_prompt = (
-        "You are a careful, expert AI programmer.\n"
-        "Only use information from the provided repository context.\n"
-        "When you reference or rely on repository content, cite the supporting context by placing the chunk index in square brackets (e.g. [1], [2]) inline next to the code or comment.\n"
-        "If you cannot find supporting repository context for the request, respond with exactly:\n"
-        "I don't have enough repository context to answer this. Abstaining.\n"
-        f"Generate clean, optimized {language or '[AUTO DETECTED]'} code for:\n{prompt}\n"
-        f"{context_prompt}"
-        "Return only code. Do not include explanations or markdown fences."
-    )
+    task_prompt = _build_generation_prompt(prompt, language, context_prompt)
 
     start = time.time()
-    try:
-        response_text = await asyncio.wait_for(
-            provider.generate(task_prompt, model=chosen_model),
-            timeout=settings.GENERATION_TIMEOUT,
-        )
-        code = response_text or "// No code generated."
-    except asyncio.TimeoutError:
-        logger.exception("Code generation timeout")
-        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="Code generation timed out") from None
-    except Exception as ex:
-        logger.exception("Code generation failed")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Code generation failed: {ex}") from ex
-
+    code = await _invoke_provider(provider, task_prompt, chosen_model, "Code generation")
     elapsed = int((time.time() - start) * 1000)
-    ok, reason, cited = verify_response(code, allowed_indices=list(index_map.keys()))
-    if not ok:
-        logger.warning("Generation output rejected: %s", reason)
-        return CodeResponse(
-            code="// Aborted: generated output missing required repository citations.",
-            explanation="Abstained due to missing citations in model output.",
-            confidence=0.0,
-            model_used=chosen_model,
-            elapsed_ms=elapsed,
-        )
 
-    provenance = _build_provenance(cited, index_map)
+    code, explanation, confidence, provenance = _finalize_output(code, index_map)
+    if explanation == "verified":
+        explanation = f"Generated by {chosen_model} ({decision.reason})."
+    elif index_map:
+        pass
+    else:
+        explanation = f"Generated by {chosen_model} ({decision.reason}) without retrieved repository context."
+
     return CodeResponse(
         code=code,
-        explanation=f"Generated by {chosen_model} ({decision.reason}).",
-        confidence=0.95,
+        explanation=explanation,
+        confidence=confidence,
         model_used=chosen_model,
         elapsed_ms=elapsed,
         provenance=provenance,
@@ -221,69 +286,33 @@ async def _fix_code_core(
     file_code: str,
     instructions: str | None = None,
     model_override: str | None = None,
+    file_path: str | None = None,
 ) -> CodeResponse:
     decision = _route_fix(file_code, model_override)
     provider, chosen_model = LLMFactory.create(decision)
-
-    if not provider.is_ready() and decision.provider != "ollama":
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"LLM provider '{decision.provider}' is not configured",
-        )
+    _ensure_provider_ready(provider, decision)
 
     context_prompt, index_map = build_context_prompt(file_code)
-    if not context_prompt:
-        return CodeResponse(
-            code="// Aborted: no supporting repository context found.",
-            explanation="Abstained due to lack of repository context.",
-            confidence=0.0,
-            model_used=chosen_model,
-            elapsed_ms=0,
-        )
-
-    prompt = (
-        "You are an expert senior developer.\n"
-        "Only use the provided repository context to inform fixes; cite chunk indices inline when referencing repository content.\n"
-        f"Given this code:\n{file_code}\n\n"
-        f"Instructions: {instructions or 'Fix all bugs and optimize for best practices.'}\n"
-        f"{context_prompt}"
-        "Return only the fixed code. Do not include explanations or markdown fences."
-    )
+    prompt = _build_fix_prompt(file_code, instructions, context_prompt)
 
     start = time.time()
-    try:
-        response_text = await asyncio.wait_for(
-            provider.generate(prompt, model=chosen_model),
-            timeout=settings.GENERATION_TIMEOUT,
-        )
-        code = response_text or "// No fixes generated."
-    except asyncio.TimeoutError:
-        logger.exception("Code fix timeout")
-        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="Code fixing timed out") from None
-    except Exception as exc:
-        logger.exception("Code fix failed")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Code fixing failed: {exc}") from exc
-
+    code = await _invoke_provider(provider, prompt, chosen_model, "Code fixing")
     elapsed = int((time.time() - start) * 1000)
-    ok, reason, cited = verify_response(code, allowed_indices=list(index_map.keys()))
-    if not ok:
-        logger.warning("Fix output rejected: %s", reason)
-        return CodeResponse(
-            code="// Aborted: generated output missing required repository citations.",
-            explanation="Abstained due to missing citations in model output.",
-            confidence=0.0,
-            model_used=chosen_model,
-            elapsed_ms=elapsed,
-        )
 
-    provenance = _build_provenance(cited, index_map)
+    code, explanation, confidence, provenance = _finalize_output(code, index_map)
+    if explanation == "verified":
+        explanation = f"Fixed by {chosen_model} ({decision.reason})."
+    elif not index_map:
+        explanation = f"Fixed by {chosen_model} ({decision.reason}) without retrieved repository context."
+
     return CodeResponse(
         code=code,
-        explanation=f"Fixed by {chosen_model} ({decision.reason}).",
-        confidence=0.95,
+        explanation=explanation,
+        confidence=confidence,
         model_used=chosen_model,
         elapsed_ms=elapsed,
         provenance=provenance,
+        patch=_optional_patch(file_path, file_code, code),
     )
 
 
@@ -298,4 +327,8 @@ async def generate_code(request: Request, payload: CodeRequest):
 async def fix_code(request: Request, payload: FixRequest):
     if not is_activated() and not getattr(request.app.state, "activated", False):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI Agent inactive. Use /activate.")
-    return await _fix_code_core(payload.file_code, payload.instructions)
+    return await _fix_code_core(
+        payload.file_code,
+        payload.instructions,
+        file_path=payload.file_path,
+    )

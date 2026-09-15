@@ -181,7 +181,7 @@ class TerminalDashboard(App):
         provenance_view = self.query_one("#provenance-view", ProvenanceView)
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=300.0) as client:
                 response = await client.post(f"{BACKEND_URL}{path}", json=payload)
                 response.raise_for_status()
                 result = response.json()

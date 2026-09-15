@@ -101,6 +101,10 @@ def test_classifier_convenience_entry_point():
     assert task_type is TaskType.AUDIT
     assert complexity is TaskComplexity.HIGH
 
+    task_type, complexity = classify_request("complete this function")
+    assert task_type is TaskType.COMPLETION
+    assert complexity is TaskComplexity.LOW
+
 
 def test_agent_result_is_structured():
     decision = route_request(AgentRequest("Hello"))

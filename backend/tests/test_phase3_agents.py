@@ -88,8 +88,13 @@ def test_agent_routes_local_context_and_skips_general_requests():
         def retrieve(self, prompt):
             return [prompt]
 
+    class QueryOnlyService:
+        def query(self, prompt, top_k=5):
+            return [{"id": "doc1", "score": 0.9}]
+
     service = FakeVectorService()
     assert process_code_request("check the internal architecture", service) == ["check the internal architecture"]
+    assert process_code_request("check the internal architecture", QueryOnlyService()) == [{"id": "doc1", "score": 0.9}]
     assert process_code_request("create a python script", service) is None
     assert process_code_request("explain recursion", service) is None
     with pytest.raises(ValueError):

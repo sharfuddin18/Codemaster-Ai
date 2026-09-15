@@ -7,14 +7,16 @@ from pydantic import BaseModel, Field
 from ..config import settings
 from ..llm.factory import LLMFactory
 from ..models import CodeRequest, CodeResponse, FixRequest
-from ..services.hybrid_retriever import HybridRetriever
-from ..services.vector_service import VectorService
-from .generation import _fix_code_core, _generate_code_core, get_vector_engine
+from .generation import (
+    _fix_code_core,
+    _generate_code_core,
+    _parse_retrieval_doc,
+    get_hybrid_retriever,
+)
 from database.db import is_activated
 
 logger = logging.getLogger("codemaster-ai")
 router = APIRouter(prefix="/mcp", tags=["MCP"])
-_hybrid_retriever: HybridRetriever | None = None
 
 
 class MCPRetrieveRequest(BaseModel):
@@ -40,49 +42,13 @@ class MCPRetrieveResponse(BaseModel):
     results: List[MCPContextChunk]
 
 
-def get_hybrid_retriever() -> HybridRetriever:
-    global _hybrid_retriever
-    if _hybrid_retriever is None:
-        dense_service = VectorService()
-        retriever = HybridRetriever(dense_vector_engine=dense_service)
-        engine = get_vector_engine()
-        documents = [
-            {"id": str(index), "content": chunk}
-            for index, chunk in enumerate(engine.chunks, start=1)
-        ]
-        retriever.index_documents(documents)
-        _hybrid_retriever = retriever
-    return _hybrid_retriever
-
-
-def _parse_chunk_entry(doc: dict) -> dict:
-    text = str(doc.get("content", ""))
-    lines = text.splitlines()
-    first_line = lines[0] if lines else ""
-    if first_line.startswith("File:"):
-        file_path = first_line.replace("File:", "", 1).strip()
-        snippet = "\n".join(lines[1:]).strip()
-    else:
-        file_path = "unknown"
-        snippet = text.strip()
-    return {
-        "index": int(doc.get("id", 0)),
-        "file": file_path,
-        "snippet": snippet,
-        "text": text,
-        "hybrid_score": float(doc.get("hybrid_score", 0.0)),
-        "bm25_score": float(doc.get("bm25_score", 0.0)),
-        "dense_score": float(doc.get("dense_score", 0.0)),
-    }
-
-
 @router.get("/capabilities")
 async def mcp_capabilities():
     provider = LLMFactory.create_provider(settings.LLM_PROVIDER)
     return {
         "name": "Codemaster-AI MCP",
         "version": "1.0",
-        "capabilities": ["hybrid-retrieval", "verified-generation", "code-fix"],
+        "capabilities": ["hybrid-retrieval", "verified-generation", "code-fix", "patch-generation"],
         "active": is_activated(),
         "provider": provider.provider_name,
         "provider_ready": provider.is_ready(),
@@ -105,7 +71,7 @@ async def retrieve_context(payload: MCPRetrieveRequest):
         logger.exception("MCP retrieval failed")
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Repository retrieval unavailable") from exc
 
-    parsed = [_parse_chunk_entry(doc) for doc in results]
+    parsed = [_parse_retrieval_doc(doc) for doc in results]
     return MCPRetrieveResponse(query=payload.query, count=len(parsed), results=parsed)
 
 
@@ -120,4 +86,8 @@ async def mcp_generate(request: Request, payload: CodeRequest):
 async def mcp_fix(request: Request, payload: FixRequest):
     if not is_activated() and not getattr(request.app.state, "activated", False):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI Agent inactive. Use /activate.")
-    return await _fix_code_core(payload.file_code, payload.instructions)
+    return await _fix_code_core(
+        payload.file_code,
+        payload.instructions,
+        file_path=payload.file_path,
+    )
