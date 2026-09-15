@@ -174,6 +174,7 @@ def test_generation_retrieval_failure_is_controlled(monkeypatch):
             raise RuntimeError("index unavailable")
 
     monkeypatch.setattr("backend.app.routes.generation.get_hybrid_retriever", lambda: FailingRetriever())
+    monkeypatch.setattr("backend.app.routes.generation._ensure_provider_ready", lambda *args, **kwargs: None)
     app.state.activated = True
     with TestClient(app) as client:
         response = client.post("/generate-code", json={"prompt": "find fetch_user", "language": "python"})
