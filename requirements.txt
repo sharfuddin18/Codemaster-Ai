@@ -1,8 +1,8 @@
 fastapi>=0.141.1
-uvicorn>=0.52.4
+uvicorn>=0.54.0
 pydantic>=2.13.5
 pydantic-settings>=2.15.0
 ollama>=0.1.0
 rank-bm25>=0.2.2
-sentence-transformers>=6.0.1
+sentence-transformers>=6.1.0
 requests>=2.34.2
