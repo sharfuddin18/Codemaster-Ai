@@ -6,11 +6,22 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
 
+from ..agents.explain_agent import build_explanation_prompt
+from ..agents.review_agent import build_review_prompt
 from ..agents.code_agent import SYSTEM_PROMPT
 from ..config import settings
 from ..llm.factory import LLMFactory
 from ..llm.routing import AgentRequest, ModelRouter, TaskType
-from ..models import CodeRequest, CodeResponse, FixRequest, Provenance, Source
+from ..models import (
+    AnalysisResponse,
+    CodeRequest,
+    CodeResponse,
+    ExplainRequest,
+    FixRequest,
+    Provenance,
+    ReviewRequest,
+    Source,
+)
 from ..services.hybrid_retriever import HybridRetriever
 from ..services.patch_generator import generate_unified_patch
 from ..services.response_verifier import verify_response
@@ -154,6 +165,22 @@ def _route_fix(file_code: str, model_override: str | None):
     request = AgentRequest(
         prompt=file_code,
         task_type=TaskType.FIX,
+        model_override=model_override,
+        provider_override=settings.LLM_PROVIDER,
+    )
+    return _model_router.route(request)
+
+
+def _route_analysis(
+    prompt: str,
+    task_type: TaskType,
+    language: str | None,
+    model_override: str | None,
+):
+    request = AgentRequest(
+        prompt=prompt,
+        task_type=task_type,
+        language=language,
         model_override=model_override,
         provider_override=settings.LLM_PROVIDER,
     )
@@ -316,6 +343,30 @@ async def _fix_code_core(
     )
 
 
+async def _analysis_core(
+    prompt: str,
+    task_type: TaskType,
+    language: str | None,
+    model_override: str | None,
+) -> AnalysisResponse:
+    decision = _route_analysis(prompt, task_type, language, model_override)
+    provider, chosen_model = LLMFactory.create(decision)
+    _ensure_provider_ready(provider, decision)
+
+    started = time.perf_counter()
+    result = await _invoke_provider(
+        provider,
+        prompt,
+        chosen_model,
+        "Code review" if task_type is TaskType.REVIEW else "Code explanation",
+    )
+    elapsed = int((time.perf_counter() - started) * 1000)
+    if not result.strip() or result.strip() == "// No code generated.":
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Analysis provider returned an empty response")
+
+    return AnalysisResponse(result=result, model_used=chosen_model, elapsed_ms=elapsed)
+
+
 @router.post("/generate-code", response_model=CodeResponse)
 async def generate_code(request: Request, payload: CodeRequest):
     if not is_activated() and not getattr(request.app.state, "activated", False):
@@ -332,3 +383,19 @@ async def fix_code(request: Request, payload: FixRequest):
         payload.instructions,
         file_path=payload.file_path,
     )
+
+
+@router.post("/review-code", response_model=AnalysisResponse)
+async def review_code(request: Request, payload: ReviewRequest):
+    if not is_activated() and not getattr(request.app.state, "activated", False):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI Agent inactive. Use /activate.")
+    prompt = build_review_prompt(payload.code, payload.language, payload.focus)
+    return await _analysis_core(prompt, TaskType.REVIEW, payload.language, payload.model)
+
+
+@router.post("/explain-code", response_model=AnalysisResponse)
+async def explain_code(request: Request, payload: ExplainRequest):
+    if not is_activated() and not getattr(request.app.state, "activated", False):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="AI Agent inactive. Use /activate.")
+    prompt = build_explanation_prompt(payload.code, payload.language, payload.audience)
+    return await _analysis_core(prompt, TaskType.EXPLAIN, payload.language, payload.model)

@@ -7,7 +7,7 @@ sys.path.insert(0, workspace_root)
 sys.path.insert(0, os.path.join(workspace_root, "backend"))
 sys.path.insert(0, os.path.join(workspace_root, "backend", "app"))
 
-from backend.benchmark_harness import BenchmarkHarness
+from scripts.benchmark_harness import BenchmarkHarness
 from backend.app.main import app as backend_app
 from rich.console import Console
 from rich.table import Table

@@ -42,5 +42,9 @@ class Settings(BaseSettings):
     # API
     API_KEY: str = ""  # Optional API key for authentication
 
+    # MCP transport security
+    MCP_ALLOWED_HOSTS: str = ""
+    MCP_ALLOWED_ORIGINS: str = ""
+
 
 settings = Settings()

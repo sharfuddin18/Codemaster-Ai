@@ -18,6 +18,10 @@ class BaseLLMProvider(ABC):
     def is_ready(self) -> bool:
         """Return whether the provider is ready to serve requests."""
 
+    async def check_connection(self) -> bool:
+        """Check whether the configured provider is available for requests."""
+        return self.is_ready()
+
     @abstractmethod
     def get_status(self) -> Dict[str, Any]:
         """Return a JSON-serializable status payload for diagnostics."""

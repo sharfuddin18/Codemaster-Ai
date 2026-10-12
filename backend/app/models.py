@@ -1,5 +1,5 @@
 """Pydantic models for API request/response validation."""
-from typing import Optional, Any, Dict
+from typing import Literal, Optional, Any, Dict
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -107,3 +107,29 @@ class FixRequest(BaseModel):
             }
         }
     )
+
+
+class ReviewRequest(BaseModel):
+    """Request model for source-code review."""
+
+    code: str = Field(..., min_length=1, max_length=settings.MAX_CODE_LENGTH)
+    language: Optional[str] = Field(None, max_length=50)
+    focus: Optional[str] = Field(None, max_length=500)
+    model: Optional[str] = Field(None, max_length=200)
+
+
+class ExplainRequest(BaseModel):
+    """Request model for source-code explanation."""
+
+    code: str = Field(..., min_length=1, max_length=settings.MAX_CODE_LENGTH)
+    language: Optional[str] = Field(None, max_length=50)
+    audience: Literal["beginner", "intermediate", "advanced"] = "intermediate"
+    model: Optional[str] = Field(None, max_length=200)
+
+
+class AnalysisResponse(BaseModel):
+    """Response shared by code review and explanation workflows."""
+
+    result: str
+    model_used: str
+    elapsed_ms: int = Field(..., ge=0)

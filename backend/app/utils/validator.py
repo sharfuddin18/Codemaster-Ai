@@ -1,5 +1,5 @@
-import os
 import re
+from pathlib import Path
 
 class PathValidator:
     """Validates that file paths referenced in patches exist within the local workspace to prevent context hallucination."""
@@ -26,9 +26,14 @@ class PathValidator:
         if not target_paths:
             return False  # No valid paths found in patch headers
             
+        root = Path(root_dir).resolve()
         for path in target_paths:
-            full_path = os.path.join(root_dir, path)
-            if not os.path.exists(full_path) or not os.path.isfile(full_path):
+            full_path = (root / path).resolve()
+            try:
+                full_path.relative_to(root)
+            except ValueError:
+                return False
+            if not full_path.is_file():
                 return False
                 
         return True

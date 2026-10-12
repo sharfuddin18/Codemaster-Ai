@@ -35,3 +35,12 @@ def test_validate_patch_provenance_hallucinated_file(tmp_path):
     +new
     """
     assert PathValidator.validate_patch_provenance(patch, root_dir=str(tmp_path)) is False
+
+def test_validate_patch_provenance_rejects_path_outside_root(tmp_path):
+    root = tmp_path / "workspace"
+    root.mkdir()
+    outside_file = tmp_path / "outside.py"
+    outside_file.write_text("print('outside')")
+    patch = "+++ b/../outside.py\n"
+
+    assert PathValidator.validate_patch_provenance(patch, root_dir=str(root)) is False
