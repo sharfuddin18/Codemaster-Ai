@@ -22,6 +22,8 @@ class TaskType(str, Enum):
     REFACTOR = "refactor"
     ARCHITECTURE = "architecture"
     AUDIT = "audit"
+    REVIEW = "review"
+    EXPLAIN = "explain"
 
 
 class TaskComplexity(str, Enum):
@@ -82,6 +84,10 @@ class TaskClassifier:
         text = prompt.lower()
         if re.search(r"\b(audit)\b", text):
             return TaskType.AUDIT
+        if re.search(r"\b(review|code review)\b", text):
+            return TaskType.REVIEW
+        if re.search(r"\b(explain|walk me through)\b", text):
+            return TaskType.EXPLAIN
         if re.search(r"\b(refactor|architecture)\b", text):
             return TaskType.REFACTOR if "refactor" in text else TaskType.ARCHITECTURE
         if re.search(r"\b(fix|debug|bug|repair)\b", text):

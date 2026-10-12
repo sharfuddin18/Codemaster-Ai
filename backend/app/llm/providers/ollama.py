@@ -63,6 +63,22 @@ class OllamaProvider(BaseLLMProvider):
     def is_ready(self) -> bool:
         return self._enabled_from_env()
 
+    async def check_connection(self) -> bool:
+        if not self.is_ready():
+            return False
+
+        timeout = min(settings.OLLAMA_TIMEOUT or 5.0, 5.0)
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.get(f"{self.base_url.rstrip('/')}/api/tags")
+                response.raise_for_status()
+            self._last_error = None
+            return True
+        except httpx.HTTPError as exc:
+            self._last_error = str(exc)
+            logger.warning("Ollama health check failed: %s", exc)
+            return False
+
     def get_status(self) -> Dict[str, Any]:
         return {
             "provider": self.provider_name,

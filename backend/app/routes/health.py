@@ -30,9 +30,11 @@ async def root(request: Request):
 async def health_check():
     """Return readiness for the configured provider without performing generation."""
     provider = LLMFactory.create_provider(os.getenv("LLM_PROVIDER") or getattr(settings, "LLM_PROVIDER", "ollama"))
+    ready = await provider.check_connection()
     status = provider.get_status()
+    status["ready"] = ready
 
-    if provider.is_ready():
+    if ready:
         return {
             "status": "healthy",
             "provider": provider.provider_name,

@@ -74,7 +74,25 @@ class BenchmarkHarness:
 
     async def activate(self) -> None:
         async with await self._client() as client:
-            await client.post("/activate")
+            response = await client.post("/activate")
+            response.raise_for_status()
+
+    async def _activation_state(self) -> bool:
+        async with await self._client() as client:
+            response = await client.get("/")
+            response.raise_for_status()
+            payload = response.json()
+
+        activated = payload.get("agent_activated")
+        if not isinstance(activated, bool):
+            raise RuntimeError("Benchmark backend did not report its activation state")
+        return activated
+
+    async def _set_activation_state(self, activated: bool) -> None:
+        endpoint = "/activate" if activated else "/deactivate"
+        async with await self._client() as client:
+            response = await client.post(endpoint)
+            response.raise_for_status()
 
     async def run_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
         async with await self._client() as client:
@@ -132,12 +150,15 @@ class BenchmarkHarness:
         return result
 
     async def evaluate_tasks(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        if self.app is not None:
-            with patch("app.routes.generation.LLMFactory.create_provider", return_value=_BenchmarkMockProvider()):
-                await self.activate()
-                return [await self.run_task(task) for task in tasks]
-        await self.activate()
-        return [await self.run_task(task) for task in tasks]
+        previous_activation = await self._activation_state()
+        try:
+            await self.activate()
+            if self.app is not None:
+                with patch("app.routes.generation.LLMFactory.create_provider", return_value=_BenchmarkMockProvider()):
+                    return [await self.run_task(task) for task in tasks]
+            return [await self.run_task(task) for task in tasks]
+        finally:
+            await self._set_activation_state(previous_activation)
 
     def summarize(self, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         total = len(results)
