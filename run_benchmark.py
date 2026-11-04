@@ -79,7 +79,7 @@ async def main():
         f"Passed: {summary['passed_tasks']} ({summary['pass_rate']}%)\n"
         f"Average latency: {summary['average_latency_ms']} ms\n"
         f"Citation success: {summary['citation_success_rate']}%\n"
-        f"Verification rate: {summary['verification_rate']}%\n"
+        f"Citation validation rate: {summary['citation_validation_rate']}%\n"
         f"Average retrieval precision: {summary['average_retrieval_precision']}%",
         title="Benchmark Summary",
         style="bold green",

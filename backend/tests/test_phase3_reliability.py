@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -8,6 +9,7 @@ from backend.app.main import app
 from backend.app.services.cache_service import VectorCacheService
 from backend.app.services.hybrid_retriever import HybridRetriever
 from backend.app.services.patch_generator import PatchApplicationError, generate_unified_patch, validate_unified_patch
+from backend.app.services.vector_service import VectorService
 from backend.app.utils import vector_engine
 from backend.app.utils.vector_engine import CodeVectorEngine, IndexConfig
 
@@ -60,6 +62,27 @@ def test_hybrid_retrieval_alpha_changes_ranking_between_dense_and_bm25():
     assert dense_first[0]["id"] == "semantic"
     assert lexical_first[0]["bm25_score"] > lexical_first[1]["bm25_score"]
     assert dense_first[0]["dense_score"] > dense_first[1]["dense_score"]
+
+
+def test_vector_service_reuses_matching_repository_index_vectors():
+    class FakeIndex:
+        ntotal = 1
+
+        def reconstruct_n(self, start, count):
+            assert (start, count) == (0, 1)
+            return np.array([[0.25, 0.75]], dtype="float32")
+
+    class FakeEngine:
+        chunks = ["File: src/a.py\nvalue = 1"]
+        index = FakeIndex()
+
+        def _encode_texts(self, _texts):
+            raise AssertionError("matching repository vectors should be reused")
+
+    service = VectorService(engine=FakeEngine())
+    service.index_documents([{"id": "1", "content": FakeEngine.chunks[0]}])
+
+    assert service.embeddings.tolist() == [[0.25, 0.75]]
 
 
 def test_vector_engine_persist_reload_and_invalid_state(tmp_path: Path, monkeypatch):

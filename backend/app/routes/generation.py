@@ -24,7 +24,7 @@ from ..models import (
 )
 from ..services.hybrid_retriever import HybridRetriever
 from ..services.patch_generator import generate_unified_patch
-from ..services.response_verifier import verify_response
+from ..services.response_verifier import is_explicit_abstention, verify_response
 from ..services.vector_service import VectorService
 from ..utils.vector_engine import CodeVectorEngine, IndexConfig
 from database.db import is_activated
@@ -40,7 +40,11 @@ _hybrid_retriever: HybridRetriever | None = None
 def get_vector_engine() -> CodeVectorEngine:
     global _vector_engine
     if _vector_engine is None:
-        repo_root = Path(__file__).resolve().parents[3]
+        repo_root = (
+            Path(settings.PROJECT_ROOT).resolve()
+            if settings.PROJECT_ROOT
+            else Path(__file__).resolve().parents[3]
+        )
         index_dir = Path(settings.INDEX_DIR)
         if not index_dir.is_absolute():
             index_dir = repo_root / index_dir
@@ -59,11 +63,11 @@ def get_hybrid_retriever() -> HybridRetriever:
     global _hybrid_retriever
     if _hybrid_retriever is None:
         engine = get_vector_engine()
-        dense_service = VectorService()
         documents = [
             {"id": str(index), "content": chunk}
             for index, chunk in enumerate(engine.chunks, start=1)
         ]
+        dense_service = VectorService(engine=engine)
         retriever = HybridRetriever(dense_vector_engine=dense_service)
         retriever.index_documents(documents)
         _hybrid_retriever = retriever
@@ -137,7 +141,7 @@ def _build_provenance(cited: list[int], index_map: dict[int, dict[str, str]]) ->
             )
             for i in cited
         },
-        verification_status="verified",
+        verification_status="citations_validated",
     )
 
 
@@ -231,6 +235,9 @@ def _build_fix_prompt(file_code: str, instructions: str | None, context_prompt: 
 def _finalize_output(code: str, index_map: dict[int, dict[str, str]]) -> tuple[str, str, float, Provenance | None]:
     if not index_map:
         return code, "Generated without repository citations because no context was retrieved.", 0.8, None
+
+    if is_explicit_abstention(code):
+        return code, "Model abstained because repository context was insufficient.", 0.0, None
 
     ok, reason, cited = verify_response(code, allowed_indices=list(index_map.keys()))
     if not ok:

@@ -1,263 +1,1432 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Codemaster-AI — local-first, terminal-first, project-aware AI coding engine.">
-<meta name="theme-color" content="#060713">
-<title>Codemaster-AI — Project-Aware AI Coding Engine</title>
-<style>
-:root{
-  --bg:#050611;--bg2:#080a1b;--panel:rgba(12,15,38,.72);--panel2:rgba(18,21,52,.82);
-  --line:rgba(145,117,255,.22);--text:#f4f5ff;--muted:#9ca3c7;--purple:#9b5cff;
-  --blue:#31a8ff;--cyan:#27e1ff;--pink:#ec55ff;--green:#39e6a0;--orange:#ffad45;
-  --shadow:0 25px 80px rgba(0,0,0,.45);
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
-body:before{content:"";position:fixed;inset:0;z-index:-3;background:
- radial-gradient(circle at 15% 15%,rgba(111,55,255,.18),transparent 30%),
- radial-gradient(circle at 85% 20%,rgba(0,190,255,.12),transparent 28%),
- radial-gradient(circle at 50% 80%,rgba(217,42,255,.10),transparent 30%),#050611}
-body:after{content:"";position:fixed;inset:0;z-index:-2;opacity:.32;pointer-events:none;background-image:linear-gradient(rgba(121,97,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(121,97,255,.08) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(to bottom,black,transparent 85%)}
-a{color:inherit;text-decoration:none}
-button{font:inherit}
-.container{width:min(1180px,calc(100% - 36px));margin:auto}
-.nav{position:fixed;top:16px;left:50%;transform:translateX(-50%);width:min(1180px,calc(100% - 28px));z-index:50;border:1px solid rgba(159,112,255,.24);background:rgba(6,7,19,.72);backdrop-filter:blur(22px);border-radius:18px;box-shadow:0 12px 45px rgba(0,0,0,.3)}
-.nav-inner{height:66px;display:flex;align-items:center;justify-content:space-between;padding:0 18px}
-.logo{font-weight:800;letter-spacing:.02em;display:flex;align-items:center;gap:10px}.logo-mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#812dff,#19b9ff);box-shadow:0 0 28px rgba(139,65,255,.5)}
-.logo span{background:linear-gradient(90deg,#fff,#a86cff,#4cd9ff);-webkit-background-clip:text;color:transparent}
-.nav-links{display:flex;gap:26px;font-size:13px;color:#c9cbe1}.nav-links a:hover{color:white}
-.nav-actions{display:flex;gap:10px;align-items:center}
-.btn{border:1px solid rgba(176,140,255,.35);background:rgba(18,19,44,.72);color:white;padding:11px 17px;border-radius:11px;font-weight:700;cursor:pointer;transition:.25s;display:inline-flex;align-items:center;gap:8px}
-.btn:hover{transform:translateY(-2px);border-color:#9b5cff;box-shadow:0 12px 35px rgba(109,52,255,.25)}
-.btn-primary{border:0;background:linear-gradient(100deg,#8c32ff,#1e8fff);box-shadow:0 10px 35px rgba(113,55,255,.34)}
-.menu{display:none;background:none;border:0;color:white;font-size:24px}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Codemaster-AI — local-first, terminal-first, project-aware AI coding engine."
+    />
+    <meta name="theme-color" content="#060713" />
+    <title>Codemaster-AI — Project-Aware AI Coding Engine</title>
+    <style>
+      :root {
+        --bg: #050611;
+        --bg2: #080a1b;
+        --panel: rgba(12, 15, 38, 0.72);
+        --panel2: rgba(18, 21, 52, 0.82);
+        --line: rgba(145, 117, 255, 0.22);
+        --text: #f4f5ff;
+        --muted: #9ca3c7;
+        --purple: #9b5cff;
+        --blue: #31a8ff;
+        --cyan: #27e1ff;
+        --pink: #ec55ff;
+        --green: #39e6a0;
+        --orange: #ffad45;
+        --shadow: 0 25px 80px rgba(0, 0, 0, 0.45);
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        overflow-x: hidden;
+      }
+      body:before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -3;
+        background:
+          radial-gradient(
+            circle at 15% 15%,
+            rgba(111, 55, 255, 0.18),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at 85% 20%,
+            rgba(0, 190, 255, 0.12),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at 50% 80%,
+            rgba(217, 42, 255, 0.1),
+            transparent 30%
+          ),
+          #050611;
+      }
+      body:after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        opacity: 0.32;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(121, 97, 255, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(121, 97, 255, 0.08) 1px, transparent 1px);
+        background-size: 44px 44px;
+        mask-image: linear-gradient(to bottom, black, transparent 85%);
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      button {
+        font: inherit;
+      }
+      .container {
+        width: min(1180px, calc(100% - 36px));
+        margin: auto;
+      }
+      .nav {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(1180px, calc(100% - 28px));
+        z-index: 50;
+        border: 1px solid rgba(159, 112, 255, 0.24);
+        background: rgba(6, 7, 19, 0.72);
+        backdrop-filter: blur(22px);
+        border-radius: 18px;
+        box-shadow: 0 12px 45px rgba(0, 0, 0, 0.3);
+      }
+      .nav-inner {
+        height: 66px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+      }
+      .logo {
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #812dff, #19b9ff);
+        box-shadow: 0 0 28px rgba(139, 65, 255, 0.5);
+      }
+      .logo span {
+        background: linear-gradient(90deg, #fff, #a86cff, #4cd9ff);
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+      .nav-links {
+        display: flex;
+        gap: 26px;
+        font-size: 13px;
+        color: #c9cbe1;
+      }
+      .nav-links a:hover {
+        color: white;
+      }
+      .nav-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .btn {
+        border: 1px solid rgba(176, 140, 255, 0.35);
+        background: rgba(18, 19, 44, 0.72);
+        color: white;
+        padding: 11px 17px;
+        border-radius: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.25s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        border-color: #9b5cff;
+        box-shadow: 0 12px 35px rgba(109, 52, 255, 0.25);
+      }
+      .btn-primary {
+        border: 0;
+        background: linear-gradient(100deg, #8c32ff, #1e8fff);
+        box-shadow: 0 10px 35px rgba(113, 55, 255, 0.34);
+      }
+      .menu {
+        display: none;
+        background: none;
+        border: 0;
+        color: white;
+        font-size: 24px;
+      }
 
-.hero{padding:155px 0 50px;position:relative}
-.hero-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:45px;align-items:center}
-.eyebrow{display:inline-flex;border:1px solid rgba(146,112,255,.35);background:rgba(107,69,255,.08);padding:7px 12px;border-radius:999px;color:#bfc7ff;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
-.hero h1{font-size:clamp(48px,6vw,78px);line-height:.98;letter-spacing:-.055em;margin:20px 0;background:linear-gradient(100deg,#fff 20%,#a970ff 55%,#4fd8ff);-webkit-background-clip:text;color:transparent}
-.hero p{font-size:18px;color:#b2b6d1;max-width:650px}.hero-actions{display:flex;gap:12px;margin:28px 0;flex-wrap:wrap}
-.mini-points{display:flex;gap:20px;flex-wrap:wrap;color:#aeb3d1;font-size:12px}.mini-points b{color:white}
-.code-stage{position:relative;min-height:440px;border:1px solid rgba(128,102,255,.38);border-radius:24px;background:linear-gradient(145deg,rgba(13,16,41,.94),rgba(8,9,27,.76));box-shadow:var(--shadow),0 0 90px rgba(86,35,255,.12);overflow:hidden}
-.code-stage:before{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(137,64,255,.3),transparent 65%);right:-70px;top:20px}
-.windowbar{height:48px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:7px;padding:0 16px;color:#747a9d;font-size:11px}.dot{width:9px;height:9px;border-radius:50%;background:#ff4f99}.dot:nth-child(2){background:#ffb347}.dot:nth-child(3){background:#47e5a3}.window-title{margin-left:8px}
-.terminal{padding:25px 28px;font:12px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;color:#9ee9ff}.terminal .dim{color:#73799d}.terminal .ok{color:#48e5a2}.terminal .purple{color:#c18cff}.terminal .blue{color:#6dc9ff}
-.ai-orb{position:absolute;right:38px;bottom:55px;width:150px;height:150px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,#fff, #9d5cff 10%,#1a1047 45%,transparent 70%);filter:drop-shadow(0 0 35px #8b4dff);animation:pulse 3s infinite}
-.ai-orb:after{content:"AI";font-size:32px;font-weight:900;color:#fff;text-shadow:0 0 20px #5de0ff}
-.result-card{position:absolute;left:28px;right:28px;bottom:22px;border:1px solid rgba(86,218,255,.18);background:rgba(7,9,24,.82);border-radius:14px;padding:13px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.result-card small{color:#737b9d}.result-card strong{display:block;font-size:15px}.green{color:var(--green)}.blue{color:var(--blue)}.pink{color:var(--pink)}
-@keyframes pulse{50%{transform:scale(1.07);filter:drop-shadow(0 0 55px #9b5cff)}}
+      .hero {
+        padding: 155px 0 50px;
+        position: relative;
+      }
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.05fr;
+        gap: 45px;
+        align-items: center;
+      }
+      .eyebrow {
+        display: inline-flex;
+        border: 1px solid rgba(146, 112, 255, 0.35);
+        background: rgba(107, 69, 255, 0.08);
+        padding: 7px 12px;
+        border-radius: 999px;
+        color: #bfc7ff;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .hero h1 {
+        font-size: clamp(48px, 6vw, 78px);
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+        margin: 20px 0;
+        background: linear-gradient(100deg, #fff 20%, #a970ff 55%, #4fd8ff);
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+      .hero p {
+        font-size: 18px;
+        color: #b2b6d1;
+        max-width: 650px;
+      }
+      .hero-actions {
+        display: flex;
+        gap: 12px;
+        margin: 28px 0;
+        flex-wrap: wrap;
+      }
+      .mini-points {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        color: #aeb3d1;
+        font-size: 12px;
+      }
+      .mini-points b {
+        color: white;
+      }
+      .code-stage {
+        position: relative;
+        min-height: 440px;
+        border: 1px solid rgba(128, 102, 255, 0.38);
+        border-radius: 24px;
+        background: linear-gradient(
+          145deg,
+          rgba(13, 16, 41, 0.94),
+          rgba(8, 9, 27, 0.76)
+        );
+        box-shadow:
+          var(--shadow),
+          0 0 90px rgba(86, 35, 255, 0.12);
+        overflow: hidden;
+      }
+      .code-stage:before {
+        content: "";
+        position: absolute;
+        width: 360px;
+        height: 360px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(137, 64, 255, 0.3),
+          transparent 65%
+        );
+        right: -70px;
+        top: 20px;
+      }
+      .windowbar {
+        height: 48px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 16px;
+        color: #747a9d;
+        font-size: 11px;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #ff4f99;
+      }
+      .dot:nth-child(2) {
+        background: #ffb347;
+      }
+      .dot:nth-child(3) {
+        background: #47e5a3;
+      }
+      .window-title {
+        margin-left: 8px;
+      }
+      .terminal {
+        padding: 25px 28px;
+        font:
+          12px/1.9 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        color: #9ee9ff;
+      }
+      .terminal .dim {
+        color: #73799d;
+      }
+      .terminal .ok {
+        color: #48e5a2;
+      }
+      .terminal .purple {
+        color: #c18cff;
+      }
+      .terminal .blue {
+        color: #6dc9ff;
+      }
+      .ai-orb {
+        position: absolute;
+        right: 38px;
+        bottom: 55px;
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(
+          circle at 35% 30%,
+          #fff,
+          #9d5cff 10%,
+          #1a1047 45%,
+          transparent 70%
+        );
+        filter: drop-shadow(0 0 35px #8b4dff);
+        animation: pulse 3s infinite;
+      }
+      .ai-orb:after {
+        content: "AI";
+        font-size: 32px;
+        font-weight: 900;
+        color: #fff;
+        text-shadow: 0 0 20px #5de0ff;
+      }
+      .result-card {
+        position: absolute;
+        left: 28px;
+        right: 28px;
+        bottom: 22px;
+        border: 1px solid rgba(86, 218, 255, 0.18);
+        background: rgba(7, 9, 24, 0.82);
+        border-radius: 14px;
+        padding: 13px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .result-card small {
+        color: #737b9d;
+      }
+      .result-card strong {
+        display: block;
+        font-size: 15px;
+      }
+      .green {
+        color: var(--green);
+      }
+      .blue {
+        color: var(--blue);
+      }
+      .pink {
+        color: var(--pink);
+      }
+      @keyframes pulse {
+        50% {
+          transform: scale(1.07);
+          filter: drop-shadow(0 0 55px #9b5cff);
+        }
+      }
 
-.marquee{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:rgba(9,10,27,.72);overflow:hidden;white-space:nowrap}.marquee-track{display:inline-flex;gap:30px;padding:15px 0;animation:marquee 30s linear infinite;color:#9ea6c9;font-size:13px}.marquee b{color:#dfe3ff}@keyframes marquee{to{transform:translateX(-50%)}}
-.metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;padding:18px 0}.metric{padding:18px;border:1px solid rgba(139,114,255,.2);background:linear-gradient(145deg,rgba(18,21,50,.75),rgba(9,11,29,.55));border-radius:15px;text-align:center}.metric strong{font-size:25px;display:block}.metric span{font-size:10px;color:#858ba9;text-transform:uppercase;letter-spacing:.08em}
+      .marquee {
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        background: rgba(9, 10, 27, 0.72);
+        overflow: hidden;
+        white-space: nowrap;
+      }
+      .marquee-track {
+        display: inline-flex;
+        gap: 30px;
+        padding: 15px 0;
+        animation: marquee 30s linear infinite;
+        color: #9ea6c9;
+        font-size: 13px;
+      }
+      .marquee b {
+        color: #dfe3ff;
+      }
+      @keyframes marquee {
+        to {
+          transform: translateX(-50%);
+        }
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+        padding: 18px 0;
+      }
+      .metric {
+        padding: 18px;
+        border: 1px solid rgba(139, 114, 255, 0.2);
+        background: linear-gradient(
+          145deg,
+          rgba(18, 21, 50, 0.75),
+          rgba(9, 11, 29, 0.55)
+        );
+        border-radius: 15px;
+        text-align: center;
+      }
+      .metric strong {
+        font-size: 25px;
+        display: block;
+      }
+      .metric span {
+        font-size: 10px;
+        color: #858ba9;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
 
-.section{padding:95px 0}.section-head{text-align:center;max-width:750px;margin:0 auto 45px}.kicker{color:#a978ff;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800}.section h2{font-size:clamp(32px,4vw,48px);letter-spacing:-.04em;margin:8px 0}.section-head p{color:#969dbb}
-.workflow{border:1px solid var(--line);border-radius:24px;padding:28px;background:linear-gradient(145deg,rgba(10,13,35,.9),rgba(7,8,22,.72));box-shadow:var(--shadow)}
-.workflow-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:stretch}.step{position:relative;text-align:center;padding:18px 8px;border:1px solid rgba(132,113,255,.23);background:rgba(15,18,44,.7);border-radius:15px;min-height:145px}.step:not(:last-child):after{content:"→";position:absolute;right:-17px;top:50%;color:#9d67ff;font-size:22px;z-index:2}.step .num{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;margin:0 auto 10px;background:linear-gradient(135deg,#732cff,#1cafff);font-weight:900}.step h3{font-size:12px}.step p{font-size:10px;color:#858ca9;margin-top:5px}
+      .section {
+        padding: 95px 0;
+      }
+      .section-head {
+        text-align: center;
+        max-width: 750px;
+        margin: 0 auto 45px;
+      }
+      .kicker {
+        color: #a978ff;
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-weight: 800;
+      }
+      .section h2 {
+        font-size: clamp(32px, 4vw, 48px);
+        letter-spacing: -0.04em;
+        margin: 8px 0;
+      }
+      .section-head p {
+        color: #969dbb;
+      }
+      .workflow {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        padding: 28px;
+        background: linear-gradient(
+          145deg,
+          rgba(10, 13, 35, 0.9),
+          rgba(7, 8, 22, 0.72)
+        );
+        box-shadow: var(--shadow);
+      }
+      .workflow-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        align-items: stretch;
+      }
+      .step {
+        position: relative;
+        text-align: center;
+        padding: 18px 8px;
+        border: 1px solid rgba(132, 113, 255, 0.23);
+        background: rgba(15, 18, 44, 0.7);
+        border-radius: 15px;
+        min-height: 145px;
+      }
+      .step:not(:last-child):after {
+        content: "→";
+        position: absolute;
+        right: -17px;
+        top: 50%;
+        color: #9d67ff;
+        font-size: 22px;
+        z-index: 2;
+      }
+      .step .num {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 10px;
+        background: linear-gradient(135deg, #732cff, #1cafff);
+        font-weight: 900;
+      }
+      .step h3 {
+        font-size: 12px;
+      }
+      .step p {
+        font-size: 10px;
+        color: #858ca9;
+        margin-top: 5px;
+      }
 
-.arch-grid{display:grid;grid-template-columns:1.35fr .65fr;gap:18px}.panel{border:1px solid var(--line);border-radius:20px;background:var(--panel);padding:22px;box-shadow:var(--shadow)}.panel h3{font-size:13px;margin-bottom:18px;color:#d9d9f3}
-.flow{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center}.node{padding:13px 15px;border:1px solid rgba(108,107,255,.35);background:rgba(22,24,58,.82);border-radius:11px;text-align:center;font-size:11px;min-width:105px}.node small{display:block;color:#777e9f;font-size:9px;margin-top:3px}.arrow{color:#9c66ff}.node.hot{border-color:#9b5cff;box-shadow:0 0 25px rgba(142,72,255,.18);color:#d6bcff}.rag{display:grid;grid-template-columns:1fr 1fr;gap:10px}.rag-box{padding:20px;text-align:center;border:1px solid rgba(58,207,255,.25);border-radius:14px;background:rgba(8,27,48,.4)}.rag-box:nth-child(2){border-color:rgba(200,83,255,.25)}.rag-box strong{display:block;margin-bottom:4px}.rag-box span{font-size:10px;color:#858ca9}
+      .arch-grid {
+        display: grid;
+        grid-template-columns: 1.35fr 0.65fr;
+        gap: 18px;
+      }
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel);
+        padding: 22px;
+        box-shadow: var(--shadow);
+      }
+      .panel h3 {
+        font-size: 13px;
+        margin-bottom: 18px;
+        color: #d9d9f3;
+      }
+      .flow {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .node {
+        padding: 13px 15px;
+        border: 1px solid rgba(108, 107, 255, 0.35);
+        background: rgba(22, 24, 58, 0.82);
+        border-radius: 11px;
+        text-align: center;
+        font-size: 11px;
+        min-width: 105px;
+      }
+      .node small {
+        display: block;
+        color: #777e9f;
+        font-size: 9px;
+        margin-top: 3px;
+      }
+      .arrow {
+        color: #9c66ff;
+      }
+      .node.hot {
+        border-color: #9b5cff;
+        box-shadow: 0 0 25px rgba(142, 72, 255, 0.18);
+        color: #d6bcff;
+      }
+      .rag {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .rag-box {
+        padding: 20px;
+        text-align: center;
+        border: 1px solid rgba(58, 207, 255, 0.25);
+        border-radius: 14px;
+        background: rgba(8, 27, 48, 0.4);
+      }
+      .rag-box:nth-child(2) {
+        border-color: rgba(200, 83, 255, 0.25);
+      }
+      .rag-box strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      .rag-box span {
+        font-size: 10px;
+        color: #858ca9;
+      }
 
-.bento{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.card{border:1px solid var(--line);background:linear-gradient(145deg,rgba(17,20,48,.82),rgba(9,11,29,.7));border-radius:20px;padding:25px;min-height:180px;position:relative;overflow:hidden;transition:.3s}.card:hover{transform:translateY(-6px);border-color:rgba(161,110,255,.6);box-shadow:0 25px 55px rgba(0,0,0,.32)}.card:before{content:"";position:absolute;width:130px;height:130px;border-radius:50%;background:rgba(130,64,255,.12);filter:blur(35px);right:-30px;top:-40px}.icon{font-size:27px}.card h3{margin:12px 0 7px}.card p{font-size:13px;color:#8e95b4}.wide{grid-column:span 2}.tall{grid-row:span 2}.tag{display:inline-block;font-size:9px;color:#9ddfff;border:1px solid rgba(74,212,255,.2);padding:4px 7px;border-radius:99px;margin-top:15px}
+      .bento {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        background: linear-gradient(
+          145deg,
+          rgba(17, 20, 48, 0.82),
+          rgba(9, 11, 29, 0.7)
+        );
+        border-radius: 20px;
+        padding: 25px;
+        min-height: 180px;
+        position: relative;
+        overflow: hidden;
+        transition: 0.3s;
+      }
+      .card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(161, 110, 255, 0.6);
+        box-shadow: 0 25px 55px rgba(0, 0, 0, 0.32);
+      }
+      .card:before {
+        content: "";
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        background: rgba(130, 64, 255, 0.12);
+        filter: blur(35px);
+        right: -30px;
+        top: -40px;
+      }
+      .icon {
+        font-size: 27px;
+      }
+      .card h3 {
+        margin: 12px 0 7px;
+      }
+      .card p {
+        font-size: 13px;
+        color: #8e95b4;
+      }
+      .wide {
+        grid-column: span 2;
+      }
+      .tall {
+        grid-row: span 2;
+      }
+      .tag {
+        display: inline-block;
+        font-size: 9px;
+        color: #9ddfff;
+        border: 1px solid rgba(74, 212, 255, 0.2);
+        padding: 4px 7px;
+        border-radius: 99px;
+        margin-top: 15px;
+      }
 
-.interfaces{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}.interface{min-height:260px}.mock{margin-top:16px;border:1px solid rgba(117,102,255,.25);background:#050713;border-radius:12px;padding:13px;font:10px/1.8 ui-monospace,monospace;color:#7fe2ff}.mock .ok{color:#40e6a1}.mock .warn{color:#ffbd69}
+      .interfaces {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+      }
+      .interface {
+        min-height: 260px;
+      }
+      .mock {
+        margin-top: 16px;
+        border: 1px solid rgba(117, 102, 255, 0.25);
+        background: #050713;
+        border-radius: 12px;
+        padding: 13px;
+        font:
+          10px/1.8 ui-monospace,
+          monospace;
+        color: #7fe2ff;
+      }
+      .mock .ok {
+        color: #40e6a1;
+      }
+      .mock .warn {
+        color: #ffbd69;
+      }
 
-.principles{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.principle{text-align:center;padding:25px 14px;border:1px solid var(--line);border-radius:17px;background:rgba(14,16,40,.65)}.principle .icon{margin-bottom:8px}.principle p{font-size:11px;color:#858ca8}
-.tech{display:flex;flex-wrap:wrap;justify-content:center;gap:10px}.tech span{padding:10px 14px;border:1px solid rgba(143,116,255,.2);background:rgba(14,16,38,.7);border-radius:10px;font-size:12px;color:#c8cce2}
-.cta{margin:30px 0 70px;border:1px solid rgba(159,101,255,.4);border-radius:24px;padding:55px 25px;text-align:center;background:radial-gradient(circle at 50% 0%,rgba(125,50,255,.2),transparent 60%),rgba(10,12,31,.85);box-shadow:0 0 80px rgba(103,42,255,.1)}.cta p{color:#9aa1bd;margin:10px auto 25px;max-width:650px}
-footer{border-top:1px solid var(--line);padding:35px 0 45px;color:#7f86a5;font-size:12px}.footer-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.social{display:flex;gap:15px}.social a:hover{color:white}
-.reveal{opacity:0;transform:translateY(30px);transition:.7s ease}.reveal.show{opacity:1;transform:none}
-.progress{position:fixed;top:0;left:0;height:2px;width:0;background:linear-gradient(90deg,#9b5cff,#2ee4ff);z-index:100}
-.to-top{position:fixed;right:22px;bottom:22px;width:46px;height:46px;border-radius:50%;border:1px solid rgba(160,112,255,.4);background:#15112b;color:white;display:none;z-index:40;cursor:pointer}.to-top.show{display:block}
+      .principles {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 12px;
+      }
+      .principle {
+        text-align: center;
+        padding: 25px 14px;
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        background: rgba(14, 16, 40, 0.65);
+      }
+      .principle .icon {
+        margin-bottom: 8px;
+      }
+      .principle p {
+        font-size: 11px;
+        color: #858ca8;
+      }
+      .tech {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+      }
+      .tech span {
+        padding: 10px 14px;
+        border: 1px solid rgba(143, 116, 255, 0.2);
+        background: rgba(14, 16, 38, 0.7);
+        border-radius: 10px;
+        font-size: 12px;
+        color: #c8cce2;
+      }
+      .cta {
+        margin: 30px 0 70px;
+        border: 1px solid rgba(159, 101, 255, 0.4);
+        border-radius: 24px;
+        padding: 55px 25px;
+        text-align: center;
+        background:
+          radial-gradient(
+            circle at 50% 0%,
+            rgba(125, 50, 255, 0.2),
+            transparent 60%
+          ),
+          rgba(10, 12, 31, 0.85);
+        box-shadow: 0 0 80px rgba(103, 42, 255, 0.1);
+      }
+      .cta p {
+        color: #9aa1bd;
+        margin: 10px auto 25px;
+        max-width: 650px;
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 35px 0 45px;
+        color: #7f86a5;
+        font-size: 12px;
+      }
+      .footer-inner {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+      .social {
+        display: flex;
+        gap: 15px;
+      }
+      .social a:hover {
+        color: white;
+      }
+      .reveal {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: 0.7s ease;
+      }
+      .reveal.show {
+        opacity: 1;
+        transform: none;
+      }
+      .progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 2px;
+        width: 0;
+        background: linear-gradient(90deg, #9b5cff, #2ee4ff);
+        z-index: 100;
+      }
+      .to-top {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        border: 1px solid rgba(160, 112, 255, 0.4);
+        background: #15112b;
+        color: white;
+        display: none;
+        z-index: 40;
+        cursor: pointer;
+      }
+      .to-top.show {
+        display: block;
+      }
 
-@media(max-width:900px){
- .nav-links,.nav-actions{display:none}.menu{display:block}.hero-grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(3,1fr)}
- .workflow-grid{grid-template-columns:repeat(2,1fr)}.step:not(:last-child):after{display:none}.arch-grid{grid-template-columns:1fr}.bento{grid-template-columns:repeat(2,1fr)}.interfaces{grid-template-columns:repeat(2,1fr)}.principles{grid-template-columns:repeat(3,1fr)}
-}
-@media(max-width:600px){
- .container{width:min(100% - 24px,1180px)}.hero{padding-top:125px}.hero h1{font-size:48px}.code-stage{min-height:410px}.ai-orb{right:18px;bottom:75px}.result-card{grid-template-columns:repeat(2,1fr)}
- .metrics{grid-template-columns:repeat(2,1fr)}.workflow-grid,.bento,.interfaces,.principles{grid-template-columns:1fr}.wide{grid-column:auto}.section{padding:65px 0}.nav{top:8px}.nav-inner{height:58px}.terminal{padding:18px;font-size:10px}
-}
-</style>
-</head>
-<body>
-<div class="progress" id="progress"></div>
+      @media (max-width: 900px) {
+        .nav-links,
+        .nav-actions {
+          display: none;
+        }
+        .menu {
+          display: block;
+        }
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+        .metrics {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .nav-links.mobile-open {
+          display: flex;
+          position: absolute;
+          top: calc(100% + 8px);
+          left: 0;
+          right: 0;
+          flex-direction: column;
+          gap: 14px;
+          padding: 16px;
+          border: 1px solid rgba(159, 112, 255, 0.24);
+          border-radius: 12px;
+          background: rgba(6, 7, 19, 0.96);
+        }
+        .workflow-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .step:not(:last-child):after {
+          display: none;
+        }
+        .arch-grid {
+          grid-template-columns: 1fr;
+        }
+        .bento {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .interfaces {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .principles {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      @media (max-width: 600px) {
+        .container {
+          width: min(100% - 24px, 1180px);
+        }
+        .hero {
+          padding-top: 125px;
+        }
+        .hero h1 {
+          font-size: 48px;
+        }
+        .code-stage {
+          min-height: 410px;
+        }
+        .ai-orb {
+          right: 18px;
+          bottom: 75px;
+        }
+        .result-card {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .metrics {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .workflow-grid,
+        .bento,
+        .interfaces,
+        .principles {
+          grid-template-columns: 1fr;
+        }
+        .wide {
+          grid-column: auto;
+        }
+        .section {
+          padding: 65px 0;
+        }
+        .nav {
+          top: 8px;
+        }
+        .nav-inner {
+          height: 58px;
+        }
+        .terminal {
+          padding: 18px;
+          font-size: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress" id="progress"></div>
 
-<nav class="nav">
-  <div class="nav-inner">
-    <a class="logo" href="#"><span class="logo-mark">🤖</span><span>CODEMASTER-AI</span></a>
-    <div class="nav-links">
-      <a href="#features">Features</a><a href="#architecture">Architecture</a><a href="#workflow">Workflow</a><a href="#interfaces">Interfaces</a><a href="#docs">Docs</a>
-    </div>
-    <div class="nav-actions"><a class="btn" href="https://github.com/sharfuddin18/Codemaster-Ai" target="_blank">★ GitHub</a><a class="btn btn-primary" href="#contact">Get Started</a></div>
-    <button class="menu" id="menu">☰</button>
-  </div>
-</nav>
+    <nav class="nav">
+      <div class="nav-inner">
+        <a class="logo" href="#"
+          ><span class="logo-mark">🤖</span><span>CODEMASTER-AI</span></a
+        >
+        <div class="nav-links">
+          <a href="#features">Features</a
+          ><a href="#architecture">Architecture</a
+          ><a href="#workflow">Workflow</a><a href="#interfaces">Interfaces</a
+          ><a href="#docs">Docs</a>
+        </div>
+        <div class="nav-actions">
+          <a
+            class="btn"
+            href="https://github.com/sharfuddin18/Codemaster-Ai"
+            target="_blank"
+            >★ GitHub</a
+          ><a class="btn btn-primary" href="#contact">Get Started</a>
+        </div>
+        <button class="menu" id="menu">☰</button>
+      </div>
+    </nav>
 
-<main>
-<section class="hero">
- <div class="container hero-grid">
-  <div class="reveal">
-   <span class="eyebrow">◉ Local-first · Terminal-first · Project-aware AI</span>
-   <h1>AI Coding Engine<br>That Understands<br><span>Your Project.</span></h1>
-   <p>Codemaster-AI brings project-aware intelligence to your development workflow. Retrieve the right context, route tasks deliberately, generate structured changes, and verify the result — while keeping local execution at the center.</p>
-   <div class="hero-actions"><a class="btn btn-primary" href="#workflow">⚡ Explore the workflow</a><a class="btn" href="#architecture">◇ View architecture</a></div>
-   <div class="mini-points"><span>✓ <b>Hybrid RAG</b> · Dense + BM25</span><span>✓ <b>Unified Routing</b></span><span>✓ <b>Safe Patching</b></span><span>✓ <b>Ollama</b></span></div>
-  </div>
-  <div class="code-stage reveal">
-   <div class="windowbar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span class="window-title">codemaster-ai · task runner</span></div>
-   <div class="terminal">
-    <div class="dim">$ codemaster ask --task "refactor auth flow"</div>
-    <div>› Analyzing project context...</div>
-    <div>› Retrieving relevant files <span class="purple">(Hybrid RAG)</span></div>
-    <div>› Classifying task + complexity...</div>
-    <div>› Routing through <span class="blue">ModelRouter</span>...</div>
-    <div>› Instantiating provider via <span class="purple">LLMFactory</span>...</div>
-    <div>› Generating structured result...</div>
-    <div>› Creating reviewable patch...</div>
-    <div>› Running verification...</div>
-    <br><div class="ok">✓ Task completed — ready for developer review</div>
-   </div>
-   <div class="ai-orb"></div>
-   <div class="result-card">
-    <div><small>Files changed</small><strong>8</strong></div><div><small>Lines added</small><strong class="green">+342</strong></div><div><small>Removed</small><strong class="pink">−128</strong></div><div><small>Verification</small><strong class="blue">Passed</strong></div>
-   </div>
-  </div>
- </div>
-</section>
+    <main>
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="reveal">
+            <span class="eyebrow"
+              >◉ Local-first · Terminal-first · Project-aware AI</span
+            >
+            <h1>
+              AI Coding Engine<br />That Understands<br /><span
+                >Your Project.</span
+              >
+            </h1>
+            <p>
+              Codemaster-AI brings project-aware intelligence to your
+              development workflow. Retrieve the right context, route tasks
+              deliberately, generate structured changes, and verify the result —
+              while keeping local execution at the center.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#workflow"
+                >⚡ Explore the workflow</a
+              ><a class="btn" href="#architecture">◇ View architecture</a>
+            </div>
+            <div class="mini-points">
+              <span>✓ <b>Hybrid RAG</b> · Dense + BM25</span
+              ><span>✓ <b>Unified Routing</b></span
+              ><span>✓ <b>Safe Patching</b></span
+              ><span>✓ <b>Ollama</b></span>
+            </div>
+          </div>
+          <div class="code-stage reveal">
+            <div class="windowbar">
+              <i class="dot"></i><i class="dot"></i><i class="dot"></i
+              ><span class="window-title">codemaster-ai · task runner</span>
+            </div>
+            <div class="terminal">
+              <div class="dim">
+                $ codemaster ask --task "refactor auth flow"
+              </div>
+              <div>› Analyzing project context...</div>
+              <div>
+                › Retrieving relevant files
+                <span class="purple">(Hybrid RAG)</span>
+              </div>
+              <div>› Classifying task + complexity...</div>
+              <div>
+                › Routing through <span class="blue">ModelRouter</span>...
+              </div>
+              <div>
+                › Instantiating provider via
+                <span class="purple">LLMFactory</span>...
+              </div>
+              <div>› Generating structured result...</div>
+              <div>› Creating reviewable patch...</div>
+              <div>› Running verification...</div>
+              <br />
+              <div class="ok">
+                ✓ Task completed — ready for developer review
+              </div>
+            </div>
+            <div class="ai-orb"></div>
+            <div class="result-card">
+              <div><small>Files changed</small><strong>8</strong></div>
+              <div>
+                <small>Lines added</small><strong class="green">+342</strong>
+              </div>
+              <div>
+                <small>Removed</small><strong class="pink">−128</strong>
+              </div>
+              <div>
+                <small>Verification</small><strong class="blue">Passed</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<div class="marquee"><div class="marquee-track">
- <b>PYTHON 3.12+</b><span>•</span><b>FASTAPI</b><span>•</span><b>OLLAMA</b><span>•</span><b>FAISS</b><span>•</span><b>BM25</b><span>•</span><b>PYDANTIC</b><span>•</span><b>TEXTUAL / RICH</b><span>•</span><b>MCP</b><span>•</span><b>PYTEST</b><span>•</span><b>GIT</b><span>•</span>
- <b>PYTHON 3.12+</b><span>•</span><b>FASTAPI</b><span>•</span><b>OLLAMA</b><span>•</span><b>FAISS</b><span>•</span><b>BM25</b><span>•</span><b>PYDANTIC</b><span>•</span><b>TEXTUAL / RICH</b><span>•</span><b>MCP</b><span>•</span><b>PYTEST</b>
-</div></div>
+      <div class="marquee">
+        <div class="marquee-track">
+          <b>PYTHON 3.12+</b><span>•</span><b>FASTAPI</b><span>•</span
+          ><b>OLLAMA</b><span>•</span><b>FAISS</b><span>•</span><b>BM25</b
+          ><span>•</span><b>PYDANTIC</b><span>•</span><b>TEXTUAL / RICH</b
+          ><span>•</span><b>MCP</b><span>•</span><b>PYTEST</b><span>•</span
+          ><b>GIT</b><span>•</span> <b>PYTHON 3.12+</b><span>•</span
+          ><b>FASTAPI</b><span>•</span><b>OLLAMA</b><span>•</span><b>FAISS</b
+          ><span>•</span><b>BM25</b><span>•</span><b>PYDANTIC</b><span>•</span
+          ><b>TEXTUAL / RICH</b><span>•</span><b>MCP</b><span>•</span
+          ><b>PYTEST</b>
+        </div>
+      </div>
 
-<section class="container">
- <div class="metrics reveal">
-  <div class="metric"><strong>22+</strong><span>Languages</span></div><div class="metric"><strong>Hybrid</strong><span>Retrieval</span></div><div class="metric"><strong>1</strong><span>Routing Boundary</span></div><div class="metric"><strong>Local</strong><span>Inference Path</span></div><div class="metric"><strong>Safe</strong><span>Patch Workflow</span></div><div class="metric"><strong>Evidence</strong><span>Driven Output</span></div>
- </div>
-</section>
+      <section class="container">
+        <div class="metrics reveal">
+          <div class="metric"><strong>22+</strong><span>Languages</span></div>
+          <div class="metric">
+            <strong>Hybrid</strong><span>Retrieval</span>
+          </div>
+          <div class="metric">
+            <strong>1</strong><span>Routing Boundary</span>
+          </div>
+          <div class="metric">
+            <strong>Local</strong><span>Inference Path</span>
+          </div>
+          <div class="metric">
+            <strong>Safe</strong><span>Patch Workflow</span>
+          </div>
+          <div class="metric">
+            <strong>Evidence</strong><span>Driven Output</span>
+          </div>
+        </div>
+      </section>
 
-<section id="workflow" class="section">
- <div class="container">
-  <div class="section-head reveal"><span class="kicker">End-to-end developer workflow</span><h2>From intent to <span class="pink">verified change.</span></h2><p>Every stage has an explicit responsibility — context, classification, routing, generation, patching, verification, and developer review.</p></div>
-  <div class="workflow reveal"><div class="workflow-grid">
-   <div class="step"><div class="num">1</div><h3>Developer Intent</h3><p>Describe what you want to understand, create, fix, or change.</p></div>
-   <div class="step"><div class="num">2</div><h3>Project Context</h3><p>Hybrid retrieval finds relevant repository context.</p></div>
-   <div class="step"><div class="num">3</div><h3>Task Classification</h3><p>Task type and complexity become explicit.</p></div>
-   <div class="step"><div class="num">4</div><h3>Model Routing</h3><p>ModelPolicy + ModelRouter make the selection.</p></div>
-   <div class="step"><div class="num">5</div><h3>Generation</h3><p>Provider produces a structured response or patch.</p></div>
-   <div class="step"><div class="num">6</div><h3>Patch & Verify</h3><p>Validate paths, apply safely, verify the result.</p></div>
-   <div class="step"><div class="num">7</div><h3>Developer Review</h3><p>Human inspection remains the final control point.</p></div>
-  </div></div>
- </div>
-</section>
+      <section id="workflow" class="section">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="kicker">End-to-end developer workflow</span>
+            <h2>From intent to <span class="pink">verified change.</span></h2>
+            <p>
+              Every stage has an explicit responsibility — context,
+              classification, routing, generation, patching, verification, and
+              developer review.
+            </p>
+          </div>
+          <div class="workflow reveal">
+            <div class="workflow-grid">
+              <div class="step">
+                <div class="num">1</div>
+                <h3>Developer Intent</h3>
+                <p>
+                  Describe what you want to understand, create, fix, or change.
+                </p>
+              </div>
+              <div class="step">
+                <div class="num">2</div>
+                <h3>Project Context</h3>
+                <p>Hybrid retrieval finds relevant repository context.</p>
+              </div>
+              <div class="step">
+                <div class="num">3</div>
+                <h3>Task Classification</h3>
+                <p>Task type and complexity become explicit.</p>
+              </div>
+              <div class="step">
+                <div class="num">4</div>
+                <h3>Model Routing</h3>
+                <p>ModelPolicy + ModelRouter make the selection.</p>
+              </div>
+              <div class="step">
+                <div class="num">5</div>
+                <h3>Generation</h3>
+                <p>Provider produces a structured response or patch.</p>
+              </div>
+              <div class="step">
+                <div class="num">6</div>
+                <h3>Patch & Verify</h3>
+                <p>Validate paths, apply safely, verify the result.</p>
+              </div>
+              <div class="step">
+                <div class="num">7</div>
+                <h3>Developer Review</h3>
+                <p>Human inspection remains the final control point.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<section id="architecture" class="section">
- <div class="container">
-  <div class="section-head reveal"><span class="kicker">Engine under the hood</span><h2>Architecture built around <span class="blue">clear boundaries.</span></h2><p>A consolidated production path removes duplicate provider and model-routing responsibilities.</p></div>
-  <div class="arch-grid">
-   <div class="panel reveal">
-    <h3>UNIFIED MODEL + PROVIDER PIPELINE</h3>
-    <div class="flow">
-      <div class="node">TaskClassifier<small>Task type</small></div><span class="arrow">→</span><div class="node">ModelPolicy<small>Complexity / policy</small></div><span class="arrow">→</span><div class="node hot">ModelRouter<small>RoutingDecision</small></div><span class="arrow">→</span><div class="node">LLMFactory<small>Provider creation</small></div><span class="arrow">→</span><div class="node">Provider<small>Ollama / configured</small></div>
-    </div>
-    <div style="height:16px"></div>
-    <div class="flow"><div class="node">Hybrid Retrieval<small>Dense + BM25</small></div><span class="arrow">→</span><div class="node">Project Index<small>Persistent state</small></div><span class="arrow">→</span><div class="node">Context Assembly<small>Relevant sources</small></div><span class="arrow">→</span><div class="node">Provenance + Verification<small>Inspectable result</small></div></div>
-   </div>
-   <div class="panel reveal">
-    <h3>HYBRID RAG FLOW</h3>
-    <div class="rag"><div class="rag-box"><strong>Dense</strong><span>Semantic similarity<br>FAISS vectors</span></div><div class="rag-box"><strong>BM25</strong><span>Exact identifiers<br>lexical matching</span></div></div>
-    <div style="text-align:center;color:#9d67ff;font-size:25px;margin:12px">↓</div>
-    <div class="node hot" style="width:100%">Hybrid Ranking<small>Deterministic relevant context</small></div>
-   </div>
-  </div>
- </div>
-</section>
+      <section id="architecture" class="section">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="kicker">Engine under the hood</span>
+            <h2>
+              Architecture built around
+              <span class="blue">clear boundaries.</span>
+            </h2>
+            <p>
+              A consolidated production path removes duplicate provider and
+              model-routing responsibilities.
+            </p>
+          </div>
+          <div class="arch-grid">
+            <div class="panel reveal">
+              <h3>UNIFIED MODEL + PROVIDER PIPELINE</h3>
+              <div class="flow">
+                <div class="node">TaskClassifier<small>Task type</small></div>
+                <span class="arrow">→</span>
+                <div class="node">
+                  ModelPolicy<small>Complexity / policy</small>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node hot">
+                  ModelRouter<small>RoutingDecision</small>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node">
+                  LLMFactory<small>Provider creation</small>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node">
+                  Provider<small>Ollama / configured</small>
+                </div>
+              </div>
+              <div style="height: 16px"></div>
+              <div class="flow">
+                <div class="node">
+                  Hybrid Retrieval<small>Dense + BM25</small>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node">
+                  Project Index<small>Persistent state</small>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node">
+                  Context Assembly<small>Relevant sources</small>
+                </div>
+                <span class="arrow">→</span>
+                <div class="node">
+                  Provenance + Verification<small>Inspectable result</small>
+                </div>
+              </div>
+            </div>
+            <div class="panel reveal">
+              <h3>HYBRID RAG FLOW</h3>
+              <div class="rag">
+                <div class="rag-box">
+                  <strong>Dense</strong
+                  ><span>Semantic similarity<br />FAISS vectors</span>
+                </div>
+                <div class="rag-box">
+                  <strong>BM25</strong
+                  ><span>Exact identifiers<br />lexical matching</span>
+                </div>
+              </div>
+              <div
+                style="
+                  text-align: center;
+                  color: #9d67ff;
+                  font-size: 25px;
+                  margin: 12px;
+                "
+              >
+                ↓
+              </div>
+              <div class="node hot" style="width: 100%">
+                Hybrid Ranking<small>Deterministic relevant context</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<section id="features" class="section">
- <div class="container">
-  <div class="section-head reveal"><span class="kicker">Core systems</span><h2>Powerful pieces. <span class="green">One engine.</span></h2><p>Designed around project context, reliable retrieval, deliberate routing, safe changes, and evidence-driven verification.</p></div>
-  <div class="bento">
-   <div class="card wide reveal"><div class="icon">🧠</div><h3>Project-aware intelligence</h3><p>Repository-level context helps the engine reason from relevant files, symbols, configuration, and relationships instead of isolated snippets.</p><span class="tag">CONTEXT FIRST</span></div>
-   <div class="card reveal"><div class="icon">🔎</div><h3>Hybrid RAG</h3><p>Dense semantic retrieval and BM25 lexical retrieval complement one another.</p><span class="tag">DENSE + BM25</span></div>
-   <div class="card reveal"><div class="icon">🧭</div><h3>Unified routing</h3><p>TaskClassifier → ModelPolicy → ModelRouter → RoutingDecision.</p><span class="tag">ONE AUTHORITY</span></div>
-   <div class="card tall reveal"><div class="icon">🩹</div><h3>Safe patch workflow</h3><p>Reviewable changes are validated before application, with malformed/empty patch handling, unsafe-path rejection, traversal protection, conflict handling, and verification.</p><span class="tag">VERIFY BEFORE TRUST</span></div>
-   <div class="card reveal"><div class="icon">🔌</div><h3>MCP integration</h3><p>Expose project-aware capabilities through a tool/context boundary.</p><span class="tag">EXTENSIBLE</span></div>
-   <div class="card reveal"><div class="icon">📚</div><h3>Provenance</h3><p>Retrieved context can be traced to its source, making outputs more inspectable.</p><span class="tag">TRACEABLE</span></div>
-   <div class="card wide reveal"><div class="icon">🛡️</div><h3>Failure-aware engineering</h3><p>Retrieval and indexing failures are explicit rather than silently converted into apparently successful results. Verification distinguishes tested behavior from assumptions.</p><span class="tag">EVIDENCE-DRIVEN</span></div>
-  </div>
- </div>
-</section>
+      <section id="features" class="section">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="kicker">Core systems</span>
+            <h2>Powerful pieces. <span class="green">One engine.</span></h2>
+            <p>
+              Designed around project context, reliable retrieval, deliberate
+              routing, safe changes, and evidence-driven verification.
+            </p>
+          </div>
+          <div class="bento">
+            <div class="card wide reveal">
+              <div class="icon">🧠</div>
+              <h3>Project-aware intelligence</h3>
+              <p>
+                Repository-level context helps the engine reason from relevant
+                files, symbols, configuration, and relationships instead of
+                isolated snippets.
+              </p>
+              <span class="tag">CONTEXT FIRST</span>
+            </div>
+            <div class="card reveal">
+              <div class="icon">🔎</div>
+              <h3>Hybrid RAG</h3>
+              <p>
+                Dense semantic retrieval and BM25 lexical retrieval complement
+                one another.
+              </p>
+              <span class="tag">DENSE + BM25</span>
+            </div>
+            <div class="card reveal">
+              <div class="icon">🧭</div>
+              <h3>Unified routing</h3>
+              <p>
+                TaskClassifier → ModelPolicy → ModelRouter → RoutingDecision.
+              </p>
+              <span class="tag">ONE AUTHORITY</span>
+            </div>
+            <div class="card tall reveal">
+              <div class="icon">🩹</div>
+              <h3>Safe patch workflow</h3>
+              <p>
+                Reviewable changes are validated before application, with
+                malformed/empty patch handling, unsafe-path rejection, traversal
+                protection, conflict handling, and verification.
+              </p>
+              <span class="tag">VERIFY BEFORE TRUST</span>
+            </div>
+            <div class="card reveal">
+              <div class="icon">🔌</div>
+              <h3>MCP integration</h3>
+              <p>
+                Expose project-aware capabilities through a tool/context
+                boundary.
+              </p>
+              <span class="tag">EXTENSIBLE</span>
+            </div>
+            <div class="card reveal">
+              <div class="icon">📚</div>
+              <h3>Provenance</h3>
+              <p>
+                Retrieved context can be traced to its source, making outputs
+                more inspectable.
+              </p>
+              <span class="tag">TRACEABLE</span>
+            </div>
+            <div class="card wide reveal">
+              <div class="icon">🛡️</div>
+              <h3>Failure-aware engineering</h3>
+              <p>
+                Retrieval and indexing failures are explicit rather than
+                silently converted into apparently successful results.
+                Verification distinguishes tested behavior from assumptions.
+              </p>
+              <span class="tag">EVIDENCE-DRIVEN</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<section id="interfaces" class="section">
- <div class="container">
-  <div class="section-head reveal"><span class="kicker">Developer experience</span><h2>Multiple interfaces. <span class="blue">One core.</span></h2><p>Terminal-first by design, with API and MCP boundaries for integration.</p></div>
-  <div class="interfaces">
-   <div class="card interface reveal"><div class="icon">⌘</div><h3>CLI</h3><p>Fast, scriptable terminal workflows for developers and automation.</p><div class="mock">$ codemaster ask "explain auth"<br>› Context retrieved<br>› Task classified<br>› Model routed<br><span class="ok">✓ Result ready</span><br><br>$ codemaster patch --apply<br><span class="ok">✓ Verification passed</span></div></div>
-   <div class="card interface reveal"><div class="icon">▣</div><h3>TUI</h3><p>Interactive terminal UX for browsing context, tasks, results, and changes.</p><div class="mock"><span class="blue">CODEMASTER-AI TUI</span><br>1. Chat<br>2. Code Review<br>3. Generate Patch<br>4. Apply Patch<br>5. Settings<br><br><span class="ok">● Ready</span></div></div>
-   <div class="card interface reveal"><div class="icon">⬡</div><h3>MCP</h3><p>Connect the engine to compatible tool and context ecosystems.</p><div class="mock">{ "mcp": "codemaster-ai",<br>  "tools": ["context","search",<br>  "generate","patch"],<br>  "status": "<span class="ok">connected</span>"<br>}</div></div>
-   <div class="card interface reveal"><div class="icon">◈</div><h3>REST API</h3><p>FastAPI application boundary for service-oriented workflows.</p><div class="mock">POST /api/v1/task<br>POST /api/v1/patch<br>GET  /api/v1/context<br>GET  /api/v1/models<br><br><span class="blue">200 OK</span></div></div>
-  </div>
- </div>
-</section>
+      <section id="interfaces" class="section">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="kicker">Developer experience</span>
+            <h2>Multiple interfaces. <span class="blue">One core.</span></h2>
+            <p>
+              Terminal-first by design, with API and MCP boundaries for
+              integration.
+            </p>
+          </div>
+          <div class="interfaces">
+            <div class="card interface reveal">
+              <div class="icon">⌘</div>
+              <h3>CLI</h3>
+              <p>
+                Fast, scriptable terminal workflows for developers and
+                automation.
+              </p>
+              <div class="mock">
+                $ codemaster ask "explain auth"<br />› Context retrieved<br />›
+                Task classified<br />› Model routed<br /><span class="ok"
+                  >✓ Result ready</span
+                ><br /><br />$ codemaster patch --apply<br /><span class="ok"
+                  >✓ Verification passed</span
+                >
+              </div>
+            </div>
+            <div class="card interface reveal">
+              <div class="icon">▣</div>
+              <h3>TUI</h3>
+              <p>
+                Interactive terminal UX for browsing context, tasks, results,
+                and changes.
+              </p>
+              <div class="mock">
+                <span class="blue">CODEMASTER-AI TUI</span><br />1. Chat<br />2.
+                Code Review<br />3. Generate Patch<br />4. Apply Patch<br />5.
+                Settings<br /><br /><span class="ok">● Ready</span>
+              </div>
+            </div>
+            <div class="card interface reveal">
+              <div class="icon">⬡</div>
+              <h3>MCP</h3>
+              <p>
+                Connect the engine to compatible tool and context ecosystems.
+              </p>
+              <div class="mock">
+                { "mcp": "codemaster-ai",<br />
+                "tools": ["context","search",<br />
+                "generate","patch"],<br />
+                "status": "<span class="ok">connected</span>"<br />}
+              </div>
+            </div>
+            <div class="card interface reveal">
+              <div class="icon">◈</div>
+              <h3>REST API</h3>
+              <p>
+                FastAPI application boundary for service-oriented workflows.
+              </p>
+              <div class="mock">
+                POST /api/v1/task<br />POST /api/v1/patch<br />GET
+                /api/v1/context<br />GET /api/v1/models<br /><br /><span
+                  class="blue"
+                  >200 OK</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<section class="section">
- <div class="container">
-  <div class="section-head reveal"><span class="kicker">Engineering principles</span><h2>Built for developers. <span class="pink">Backed by evidence.</span></h2></div>
-  <div class="principles">
-   <div class="principle reveal"><div class="icon">🔒</div><h3>Local-first</h3><p>Ollama remains the primary local execution path.</p></div>
-   <div class="principle reveal"><div class="icon">👁️</div><h3>Transparency</h3><p>Context, routing, patches, and verification stay inspectable.</p></div>
-   <div class="principle reveal"><div class="icon">🛡️</div><h3>Security</h3><p>Patch and runtime boundaries are treated as engineering concerns.</p></div>
-   <div class="principle reveal"><div class="icon">⚡</div><h3>Performance</h3><p>Incremental indexing avoids unnecessary reprocessing.</p></div>
-   <div class="principle reveal"><div class="icon">✓</div><h3>Reliability</h3><p>Regression tests target retrieval, routing, MCP, patches, and runtime behavior.</p></div>
-  </div>
- </div>
-</section>
+      <section class="section">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="kicker">Engineering principles</span>
+            <h2>
+              Built for developers.
+              <span class="pink">Backed by evidence.</span>
+            </h2>
+          </div>
+          <div class="principles">
+            <div class="principle reveal">
+              <div class="icon">🔒</div>
+              <h3>Local-first</h3>
+              <p>Ollama remains the primary local execution path.</p>
+            </div>
+            <div class="principle reveal">
+              <div class="icon">👁️</div>
+              <h3>Transparency</h3>
+              <p>
+                Context, routing, patches, and verification stay inspectable.
+              </p>
+            </div>
+            <div class="principle reveal">
+              <div class="icon">🛡️</div>
+              <h3>Security</h3>
+              <p>
+                Patch and runtime boundaries are treated as engineering
+                concerns.
+              </p>
+            </div>
+            <div class="principle reveal">
+              <div class="icon">⚡</div>
+              <h3>Performance</h3>
+              <p>Incremental indexing avoids unnecessary reprocessing.</p>
+            </div>
+            <div class="principle reveal">
+              <div class="icon">✓</div>
+              <h3>Reliability</h3>
+              <p>
+                Regression tests target retrieval, routing, MCP, patches, and
+                runtime behavior.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<section id="docs" class="section" style="padding-top:30px">
- <div class="container">
-  <div class="section-head reveal"><span class="kicker">Technology</span><h2>Modern stack. <span class="green">Local control.</span></h2></div>
-  <div class="tech reveal">
-   <span>Python 3.12+</span><span>FastAPI</span><span>Pydantic</span><span>Ollama</span><span>FAISS</span><span>BM25</span><span>all-MiniLM-L6-v2</span><span>Textual / Rich</span><span>MCP</span><span>pytest</span><span>Flake8</span><span>CodeQL</span><span>Git</span>
-  </div>
- </div>
-</section>
+      <section id="docs" class="section" style="padding-top: 30px">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="kicker">Technology</span>
+            <h2>Modern stack. <span class="green">Local control.</span></h2>
+          </div>
+          <div class="tech reveal">
+            <span>Python 3.12+</span><span>FastAPI</span><span>Pydantic</span
+            ><span>Ollama</span><span>FAISS</span><span>BM25</span
+            ><span>all-MiniLM-L6-v2</span><span>Textual / Rich</span
+            ><span>MCP</span><span>pytest</span><span>Flake8</span
+            ><span>CodeQL</span><span>Git</span>
+          </div>
+        </div>
+      </section>
 
-<section id="contact" class="container">
- <div class="cta reveal">
-  <span class="kicker">Explore the engine</span><h2>See Codemaster-AI in action.</h2>
-  <p>Explore the source, architecture, engineering documentation, and current implementation rather than relying on marketing claims.</p>
-  <a class="btn btn-primary" href="https://github.com/sharfuddin18/Codemaster-Ai" target="_blank">★ Open on GitHub</a>
-  <a class="btn" href="https://github.com/sharfuddin18/Codemaster-Ai/blob/main/ARCHITECTURE.md" target="_blank">Read Architecture</a>
- </div>
-</section>
-</main>
+      <section id="contact" class="container">
+        <div class="cta reveal">
+          <span class="kicker">Explore the engine</span>
+          <h2>See Codemaster-AI in action.</h2>
+          <p>
+            Explore the source, architecture, engineering documentation, and
+            current implementation rather than relying on marketing claims.
+          </p>
+          <a
+            class="btn btn-primary"
+            href="https://github.com/sharfuddin18/Codemaster-Ai"
+            target="_blank"
+            >★ Open on GitHub</a
+          >
+          <a
+            class="btn"
+            href="https://github.com/sharfuddin18/Codemaster-Ai/blob/main/ARCHITECTURE.md"
+            target="_blank"
+            >Read Architecture</a
+          >
+        </div>
+      </section>
+    </main>
 
-<footer>
- <div class="container footer-inner">
-  <div><strong style="color:white">🤖 Codemaster-AI</strong><br>Local-first · Terminal-first · Project-aware AI coding</div>
-  <div class="social"><a href="https://github.com/sharfuddin18/Codemaster-Ai" target="_blank">GitHub</a><a href="https://github.com/sharfuddin18" target="_blank">@sharfuddin18</a></div>
-  <div>Built & engineered by <strong style="color:#c9b6ff">Sharfuddin Ahmed</strong><br>MIT License</div>
- </div>
-</footer>
+    <footer>
+      <div class="container footer-inner">
+        <div>
+          <strong style="color: white">🤖 Codemaster-AI</strong
+          ><br />Local-first · Terminal-first · Project-aware AI coding
+        </div>
+        <div class="social">
+          <a
+            href="https://github.com/sharfuddin18/Codemaster-Ai"
+            target="_blank"
+            >GitHub</a
+          ><a href="https://github.com/sharfuddin18" target="_blank"
+            >@sharfuddin18</a
+          >
+        </div>
+        <div>
+          Built & engineered by
+          <strong style="color: #c9b6ff">Sharfuddin Ahmed</strong><br />MIT
+          License
+        </div>
+      </div>
+    </footer>
 
-<button class="to-top" id="top">↑</button>
-<script>
-const progress=document.getElementById('progress'),topBtn=document.getElementById('top'),menu=document.getElementById('menu');
-window.addEventListener('scroll',()=>{
- const h=document.documentElement.scrollHeight-innerHeight;
- progress.style.width=(h>0?(scrollY/h)*100:0)+'%';
- topBtn.classList.toggle('show',scrollY>500);
-});
-topBtn.onclick=()=>scrollTo({top:0,behavior:'smooth'});
-menu.onclick=()=>document.querySelector('.nav-links').classList.toggle('mobile-open');
-const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('show')}),{threshold:.12});
-document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
-document.querySelectorAll('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{
- const target=document.querySelector(a.getAttribute('href')); if(target){e.preventDefault();target.scrollIntoView({behavior:'smooth',block:'start'});}
-}));
-</script>
-</body>
+    <button class="to-top" id="top">↑</button>
+    <script>
+      const progress = document.getElementById("progress"),
+        topBtn = document.getElementById("top"),
+        menu = document.getElementById("menu");
+      window.addEventListener("scroll", () => {
+        const h = document.documentElement.scrollHeight - innerHeight;
+        progress.style.width = (h > 0 ? (scrollY / h) * 100 : 0) + "%";
+        topBtn.classList.toggle("show", scrollY > 500);
+      });
+      topBtn.onclick = () => scrollTo({ top: 0, behavior: "smooth" });
+      menu.onclick = () =>
+        document.querySelector(".nav-links").classList.toggle("mobile-open");
+      const observer = new IntersectionObserver(
+        (entries) =>
+          entries.forEach((e) => {
+            if (e.isIntersecting) e.target.classList.add("show");
+          }),
+        { threshold: 0.12 },
+      );
+      document
+        .querySelectorAll(".reveal")
+        .forEach((el) => observer.observe(el));
+      document.querySelectorAll('a[href^="#"]').forEach((a) =>
+        a.addEventListener("click", (e) => {
+          const target = document.querySelector(a.getAttribute("href"));
+          if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }),
+      );
+    </script>
+  </body>
 </html>

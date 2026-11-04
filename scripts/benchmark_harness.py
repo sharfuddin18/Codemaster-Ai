@@ -131,10 +131,10 @@ class BenchmarkHarness:
             cited_indices = provenance.get("cited_indices", [])
             result["citation_count"] = len(cited_indices)
             result["verification_status"] = provenance.get("verification_status", "missing")
-            result["retrieval_precision"] = 100.0 if result["verification_status"] == "verified" and result["citation_count"] > 0 else 0.0
+            result["retrieval_precision"] = 100.0 if result["verification_status"] == "citations_validated" and result["citation_count"] > 0 else 0.0
             result["passed"] = (
                 response.status_code == 200
-                and result["verification_status"] == "verified"
+                and result["verification_status"] == "citations_validated"
                 and result["citation_count"] > 0
                 and not code.strip().startswith("// Aborted")
             )
@@ -165,7 +165,7 @@ class BenchmarkHarness:
         passed = sum(1 for result in results if result["passed"])
         average_latency = round(sum(result["latency_ms"] for result in results) / total, 2) if total else 0.0
         citation_success_rate = round(sum(1 for result in results if result["citation_count"] > 0) / total * 100, 2) if total else 0.0
-        verification_rate = round(sum(1 for result in results if result["verification_status"] == "verified") / total * 100, 2) if total else 0.0
+        citation_validation_rate = round(sum(1 for result in results if result["verification_status"] == "citations_validated") / total * 100, 2) if total else 0.0
         average_retrieval_precision = round(sum(result["retrieval_precision"] for result in results) / total, 2) if total else 0.0
 
         return {
@@ -174,6 +174,6 @@ class BenchmarkHarness:
             "pass_rate": round(passed / total * 100, 2) if total else 0.0,
             "average_latency_ms": average_latency,
             "citation_success_rate": citation_success_rate,
-            "verification_rate": verification_rate,
+            "citation_validation_rate": citation_validation_rate,
             "average_retrieval_precision": average_retrieval_precision,
         }

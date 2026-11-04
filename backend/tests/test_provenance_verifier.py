@@ -1,6 +1,7 @@
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.main import app
+from app.services.response_verifier import verify_response
 
 # Ensure API is activated for tests
 app.state.activated = True
@@ -24,6 +25,15 @@ def _fake_context():
         1: {"file": "src/example.py", "snippet": "def add(a,b):\n    return a+b"}
     }
     return prompt, chunk_map
+
+
+def test_array_index_is_not_a_provenance_citation():
+    assert verify_response("return items[1]", allowed_indices=[1]) == (
+        False,
+        "missing citations",
+        [],
+    )
+    assert verify_response("return value  # [1]", allowed_indices=[1])[0]
 
 
 def test_generation_rejects_uncited_output():
@@ -51,7 +61,22 @@ def test_generation_accepts_cited_output():
         prov = data.get("provenance")
         assert prov is not None
         assert prov["cited_indices"] == [1]
+        assert prov["verification_status"] == "citations_validated"
         assert "1" in prov["sources"]
         src = prov["sources"]["1"]
         assert src["file"] == "src/example.py"
         assert "def add(a,b)" in src["snippet"]
+
+
+def test_generation_abstention_is_not_returned_as_verified_provenance():
+    from app.services.response_verifier import ABSTAIN_PHRASE
+
+    fake = FakeProvider(ABSTAIN_PHRASE)
+    with patch("app.llm.factory.LLMFactory.create_provider", return_value=fake), \
+         patch("app.routes.generation.build_context_prompt", return_value=_fake_context()):
+        response = client.post("/generate-code", json={"prompt": "Add numbers"})
+
+    assert response.status_code == 200
+    assert response.json()["code"] == ABSTAIN_PHRASE
+    assert response.json()["confidence"] == 0.0
+    assert response.json().get("provenance") is None

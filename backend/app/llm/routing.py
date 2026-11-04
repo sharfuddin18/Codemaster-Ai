@@ -162,9 +162,13 @@ class ModelPolicy:
         request: AgentRequest,
         task_type: TaskType,
         complexity: TaskComplexity,
+        provider: str,
     ) -> tuple[str, str]:
         if request.model_override:
             return request.model_override.strip(), "Explicit model override"
+
+        if provider == "openai":
+            return settings.OPENAI_MODEL or "gpt-4o-mini", "Configured OpenAI model"
 
         text = f"{request.prompt} {request.language or ''}".lower()
         for model, reason, keywords in self._RULES:
@@ -190,7 +194,7 @@ class ModelRouter:
         provider = (request.provider_override or settings.LLM_PROVIDER or "ollama").strip().lower()
         if provider not in self.SUPPORTED_PROVIDERS:
             raise ValueError(f"Unsupported provider: {provider}")
-        model, reason = self.policy.choose(request, task_type, complexity)
+        model, reason = self.policy.choose(request, task_type, complexity, provider)
         if not model:
             raise ValueError("ModelPolicy produced an empty model")
         return RoutingDecision(

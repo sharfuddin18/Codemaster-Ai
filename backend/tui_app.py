@@ -20,6 +20,11 @@ from textual.widgets import (
 )
 
 BACKEND_URL = os.getenv("CODEMASTER_AI_BACKEND", "http://localhost:8000")
+API_HEADERS = (
+    {"x-api-key": os.environ["CODEMASTER_API_KEY"]}
+    if os.getenv("CODEMASTER_API_KEY")
+    else {}
+)
 
 
 class CodeOutputView(Static):
@@ -182,7 +187,7 @@ class TerminalDashboard(App):
 
         try:
             async with httpx.AsyncClient(timeout=300.0) as client:
-                response = await client.post(f"{BACKEND_URL}{path}", json=payload)
+                response = await client.post(f"{BACKEND_URL}{path}", headers=API_HEADERS, json=payload)
                 response.raise_for_status()
                 result = response.json()
 
@@ -199,8 +204,8 @@ class TerminalDashboard(App):
             code_view.update_code(code, language)
             provenance_view.update_provenance(provenance)
 
-            if provenance and provenance.get("verification_status") != "verified":
-                log.write("[bold yellow]⚠️ Response was not fully verified by provenance metadata.[/bold yellow]\n")
+            if provenance and provenance.get("verification_status") != "citations_validated":
+                log.write("[bold yellow]⚠️ Citation validation is unavailable for this response.[/bold yellow]\n")
         except httpx.HTTPStatusError as exc:
             log.write(f"[bold red]HTTP error:[/bold red] {exc.response.status_code} {exc.response.text}\n")
             code_view.update_code("", language="text")

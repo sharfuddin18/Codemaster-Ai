@@ -1,6 +1,7 @@
 import pytest
 
 from backend.app.llm.factory import LLMFactory
+from backend.app.config import settings
 from backend.app.llm.providers.fallback import FallbackProvider
 from backend.app.llm.providers.ollama import OllamaProvider
 from backend.app.llm.routing import (
@@ -51,6 +52,26 @@ def test_model_policy_is_deterministic():
     request = AgentRequest("Create a Python parser", language="python")
     router = ModelRouter()
     assert router.route(request) == router.route(request)
+
+
+def test_openai_routing_uses_configured_openai_model(monkeypatch):
+    monkeypatch.setattr(settings, "OPENAI_MODEL", "configured-model")
+    decision = ModelRouter().route(
+        AgentRequest("Write Python code", provider_override="openai")
+    )
+    assert decision.provider == "openai"
+    assert decision.model == "configured-model"
+
+
+def test_openai_routing_preserves_explicit_model_override():
+    decision = ModelRouter().route(
+        AgentRequest(
+            "Write Python code",
+            model_override="custom-openai-model",
+            provider_override="openai",
+        )
+    )
+    assert decision.model == "custom-openai-model"
 
 
 def test_routing_decision_is_structured_and_complete():

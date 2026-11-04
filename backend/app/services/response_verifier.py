@@ -8,7 +8,7 @@ ABSTAIN_PHRASE = "I don't have enough repository context to answer this. Abstain
 def _extract_citation_indices(text: str) -> List[int]:
     if not text:
         return []
-    matches = re.findall(r"\[\s*(\d+)\s*\]", text)
+    matches = re.findall(r"(?<!\w)\[\s*(\d+)\s*\]", text)
     return [int(m) for m in matches]
 
 
