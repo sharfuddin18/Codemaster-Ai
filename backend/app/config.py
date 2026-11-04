@@ -13,8 +13,10 @@ class Settings(BaseSettings):
 
     # Ollama
     OLLAMA_HOST: str = "http://127.0.0.1:11434"
+    OLLAMA_BASE_URL: str = ""
     OLLAMA_TIMEOUT: float = 300.0  # 5 minutes
     OLLAMA_ENABLED: bool = False
+    OLLAMA_DEFAULT_MODEL: str = "qwen2.5-coder:1.5b"
 
     # LLM provider settings
     LLM_PROVIDER: str = "ollama"
@@ -22,6 +24,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o-mini"
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-3-haiku-20240307"
+    PROJECT_ROOT: str = ""
     INDEX_DIR: str = "data/index"
 
     # CORS

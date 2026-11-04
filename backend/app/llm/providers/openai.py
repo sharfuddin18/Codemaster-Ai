@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict
 
+from ...config import settings
 from .base import BaseLLMProvider
 
 
@@ -21,15 +22,18 @@ class OpenAIProvider(BaseLLMProvider):
         except ImportError as exc:
             raise RuntimeError("openai package is not installed") from exc
 
-        client = openai.AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        response = await client.responses.create(
-            model=model or os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            input=prompt,
-        )
-        return getattr(response, "output_text", "") or ""
+        client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        try:
+            response = await client.responses.create(
+                model=model or settings.OPENAI_MODEL,
+                input=prompt,
+            )
+            return getattr(response, "output_text", "") or ""
+        finally:
+            await client.close()
 
     def is_ready(self) -> bool:
-        return bool(os.getenv("OPENAI_API_KEY"))
+        return bool(settings.OPENAI_API_KEY)
 
     def get_status(self) -> Dict[str, Any]:
         return {

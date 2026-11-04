@@ -11,8 +11,13 @@ logger = logging.getLogger("codemaster-ai")
 class VectorService:
     """Lightweight document-level vector API backed by the embedding utility."""
 
-    def __init__(self, source_dir: Optional[str] = None, model_name: Optional[str] = None):
-        self.engine = CodeVectorEngine(
+    def __init__(
+        self,
+        source_dir: Optional[str] = None,
+        model_name: Optional[str] = None,
+        engine: Optional[CodeVectorEngine] = None,
+    ):
+        self.engine = engine or CodeVectorEngine(
             source_dir=source_dir,
             model_name=model_name or "sentence-transformers/all-MiniLM-L6-v2",
             build_on_init=False,
@@ -28,7 +33,17 @@ class VectorService:
         texts = [str(doc.get("content", "")) for doc in self.documents]
         try:
             if self.documents:
-                self.embeddings = self.engine._encode_texts(texts)
+                if (
+                    texts == self.engine.chunks
+                    and self.engine.index is not None
+                    and self.engine.index.ntotal == len(texts)
+                ):
+                    self.embeddings = np.asarray(
+                        self.engine.index.reconstruct_n(0, self.engine.index.ntotal),
+                        dtype="float32",
+                    )
+                else:
+                    self.embeddings = self.engine._encode_texts(texts)
             else:
                 self.embeddings = None
         except Exception as exc:
@@ -43,18 +58,36 @@ class VectorService:
         if not self.documents:
             return []
 
+        fallback = [{"id": doc.get("id"), "score": 0.0} for doc in self.documents][:top_k]
+
         try:
-            q_emb = self.engine._encode_texts([query])
+            q_emb = np.asarray(self.engine._encode_texts([query]), dtype="float32")
         except Exception as exc:
             logger.exception("VectorService: failed to encode query: %s", exc)
-            raise RuntimeError("Vector query encoding failed") from exc
+            return fallback
 
-        if self.embeddings is None or self.embeddings.shape[0] == 0:
-            return [{"id": doc.get("id"), "score": 0.0} for doc in self.documents][:top_k]
+        try:
+            mat = np.asarray(self.embeddings, dtype="float32")
+        except Exception:
+            return fallback
 
-        q_vec = q_emb[0].astype("float32")
-        mat = self.embeddings.astype("float32")
-        sims = (np.dot(mat, q_vec) + 1.0) / 2.0
+        if q_emb.size == 0 or mat.size == 0:
+            return fallback
+
+        if q_emb.ndim == 1:
+            q_emb = q_emb.reshape(1, -1)
+        if mat.ndim == 1:
+            mat = mat.reshape(1, -1)
+
+        if mat.shape[0] == 0 or q_emb.shape[1] != mat.shape[1]:
+            return fallback
+
+        sims = np.dot(mat, q_emb[0])
+        if np.isscalar(sims):
+            sims = np.asarray([float(sims)], dtype="float32")
+        sims = np.asarray(sims, dtype="float32").reshape(-1)
+        sims = np.clip((sims + 1.0) / 2.0, 0.0, 1.0)
+
         results = [
             {"id": self.ids[idx], "score": float(score)}
             for idx, score in enumerate(sims)

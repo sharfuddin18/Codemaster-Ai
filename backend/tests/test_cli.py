@@ -112,6 +112,27 @@ def test_main_uses_configured_api_url(monkeypatch):
     assert captured["url"] == "http://127.0.0.1:9000/generate-code"
 
 
+def test_main_sends_configured_api_key(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"code": "print('ok')"}
+
+    def fake_post(_url, **kwargs):
+        captured.update(kwargs)
+        return FakeResponse()
+
+    monkeypatch.setenv("CODEMASTER_API_KEY", "test-key")
+    monkeypatch.setattr(requests, "post", fake_post)
+
+    assert main(["hello"]) == 0
+    assert captured["headers"]["x-api-key"] == "test-key"
+
+
 def test_main_rejects_empty_prompt_without_http_request(monkeypatch):
     called = False
 

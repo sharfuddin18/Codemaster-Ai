@@ -115,11 +115,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("Input error: prompt is empty", file=sys.stderr)
         return 2
 
-    api_url = os.getenv("CODEMASTER_API_URL", DEFAULT_API_URL)
+    api_url = os.getenv("CODEMASTER_API_URL") or os.getenv("CODEMASTER_API_BASE_URL", DEFAULT_API_URL)
+    headers = {"Content-Type": "application/json"}
+    api_key = os.getenv("CODEMASTER_API_KEY") or os.getenv("API_KEY")
+    if api_key:
+        headers["x-api-key"] = api_key
     try:
         response = requests.post(
             api_url,
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             json={"prompt": prompt},
             timeout=DEFAULT_TIMEOUT_SECONDS,
         )

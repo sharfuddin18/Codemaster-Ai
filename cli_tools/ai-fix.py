@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+import os
 import sys
 import requests
 import json
 
 # Matches your backend endpoint exactly
-URL = "http://localhost:8000/fix-code"
+URL = f"{os.getenv('CODEMASTER_API_BASE_URL', 'http://localhost:8000').rstrip('/')}/fix-code"
 
 def main():
     if len(sys.argv) < 3:
@@ -18,7 +19,11 @@ def main():
 
     try:
         # Increased timeout to 90 sec to prevent Request timed out errors
-        r = requests.post(URL, json=payload, timeout=200)
+        headers = {}
+        api_key = os.getenv("CODEMASTER_API_KEY") or os.getenv("API_KEY")
+        if api_key:
+            headers["x-api-key"] = api_key
+        r = requests.post(URL, headers=headers, json=payload, timeout=200)
     except requests.exceptions.ConnectionError:
         print("❌ ERROR: Unable to connect to backend. Make sure Codemaster-AI is running.")
         sys.exit(1)

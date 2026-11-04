@@ -5,6 +5,7 @@ WORKDIR /app
 ENV PYTHONPATH=/app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PROJECT_ROOT=/app
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl git && rm -rf /var/lib/apt/lists/*
 
@@ -13,7 +14,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
 COPY database/ ./database/
+COPY cli_tools/ ./cli_tools/
 COPY session_memory.py tui_app.py ./
+COPY requirements.txt ./
 
 EXPOSE 8000
 
